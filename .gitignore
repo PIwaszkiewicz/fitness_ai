@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Środowisko wirtualne
+.venv/
+venv/
+
+# Ustawienia IDE
+.idea/
+.vscode/
+
+# Zmienne środowiskowe
+.env
+.env.*
+
+# Bazy danych SQLite
+*.db
+*.sqlite
+*.sqlite3
+
+# Zapisane modele ML
+*.pkl
+*.joblib
+
+# Cache narzędzi
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# System
+.DS_Store

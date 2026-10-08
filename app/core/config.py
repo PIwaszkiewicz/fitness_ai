@@ -14,6 +14,8 @@ class Settings:
         self.project_name: str = os.getenv("PROJECT_NAME", "Fitness AI")
         self.version: str = os.getenv("VERSION", "0.1.0")
         self.api_v1_prefix: str = "/api/v1"
+        # Adres bazy danych. Domyślnie lokalny plik SQLite w katalogu projektu.
+        self.database_url: str = os.getenv("DATABASE_URL", "sqlite:///./fitness_ai.db")
         # Adresy frontendu, które mogą wysyłać żądania do API (CORS).
         # W zmiennej środowiskowej podaje się je po przecinku.
         cors = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")

@@ -1,0 +1,34 @@
+# Ciągła integracja: przy każdym pushu i pull requeście do main
+# sprawdzamy jakość kodu (ruff) i uruchamiamy testy (pytest).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # Pobranie kodu repozytorium
+      - uses: actions/checkout@v4
+
+      # Instalacja Pythona 3.12 z cache pakietów pip (szybsze kolejne uruchomienia)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # Instalacja zależności projektu
+      - name: Instalacja zależności
+        run: pip install -r requirements.txt
+
+      # Analiza statyczna kodu
+      - name: Ruff
+        run: ruff check .
+
+      # Testy automatyczne
+      - name: Pytest
+        run: pytest

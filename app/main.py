@@ -16,13 +16,25 @@ Przepływ żądania:
 Uruchomienie: uvicorn app.main:app --reload
 """
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app import models  # noqa: F401  (rejestruje tabele w Base.metadata)
 from app.api.v1.router import api_router
 from app.core.config import settings
+from app.core.database import Base, engine
 
-app = FastAPI(title=settings.project_name, version=settings.version)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Kod wykonywany przy starcie serwera: tworzy brakujące tabele w bazie."""
+    Base.metadata.create_all(bind=engine)
+    yield
+
+
+app = FastAPI(title=settings.project_name, version=settings.version, lifespan=lifespan)
 
 # CORS pozwala frontendowi z innego adresu (np. localhost:3000) wywoływać API.
 app.add_middleware(

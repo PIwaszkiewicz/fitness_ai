@@ -54,6 +54,19 @@ class Limitation(StrEnum):
     HEART_CONDITION = "heart_condition"
 
 
+# Ograniczenia układu krążenia, przy których wysiłek wymaga zgody lekarza.
+CARDIOVASCULAR_LIMITATIONS = [Limitation.HYPERTENSION, Limitation.HEART_CONDITION]
+
+
+class TrainingExperience(StrEnum):
+    """Staż treningowy, czyli jak długo użytkownik regularnie trenuje."""
+
+    NONE = "none"
+    LESS_THAN_1_YEAR = "less_than_1_year"
+    FROM_1_TO_3_YEARS = "1_to_3_years"
+    MORE_THAN_3_YEARS = "more_than_3_years"
+
+
 class MuscleGroup(StrEnum):
     """Główna grupa mięśniowa angażowana przez ćwiczenie."""
 

@@ -2,11 +2,12 @@
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import exercises, profiles
+from app.api.v1.endpoints import exercises, profiles, questionnaire
 
 api_router = APIRouter()
 api_router.include_router(profiles.router)
 api_router.include_router(exercises.router)
+api_router.include_router(questionnaire.router)
 
 
 @api_router.get("/ping")

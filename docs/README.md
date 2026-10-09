@@ -12,7 +12,7 @@
 | `app/schemas/`          | Schematy walidacji danych wejściowych i odpowiedzi (Pydantic) |
 | `app/services/`         | Logika biznesowa łącząca API, bazę danych i moduły ML         |
 | `app/ml/`               | Moduły AI: klasyfikacja sprawności, generowanie planów        |
-| `app/data/`             | Dane startowe, m.in. atlas ćwiczeń (`exercises.json`)         |
+| `app/data/`             | Dane: atlas ćwiczeń (`exercises.json`), pytania (`questions.py`) |
 | `app/seed.py`           | Skrypt wypełniający bazę atlasem ćwiczeń                      |
 | `tests/`                | Testy automatyczne (pytest)                                   |
 | `docs/`                 | Dokumentacja projektu                                         |
@@ -57,13 +57,38 @@ Tabele tworzone są automatycznie przy starcie serwera (plik `fitness_ai.db`, wy
 
 | Tabela          | Zawartość                                                                       |
 |-----------------|---------------------------------------------------------------------------------|
-| `user_profiles` | Wiek, płeć, wzrost, waga, cel treningowy, poziom aktywności, ograniczenia        |
+| `user_profiles` | Odpowiedzi z kwestionariusza: dane podstawowe, zdrowie, testy, preferencje, kompletność |
 | `exercises`     | Nazwa, grupa mięśniowa, sprzęt, poziom trudności, przeciwwskazania               |
 
 Ograniczenia użytkownika i przeciwwskazania ćwiczeń korzystają z tego samego słownika
 (`Limitation` w `app/models/enums.py`), więc konflikt wykrywa się porównaniem dwóch zbiorów.
 
 Zakresy walidacji danych profilu: wiek 16–100 lat, wzrost 120–230 cm, waga 30–300 kg.
+
+Tabele tworzy `create_all`, który nie modyfikuje istniejących tabel. Po zmianie modeli
+lokalną bazę trzeba odtworzyć: usunąć plik `fitness_ai.db` i ponownie uruchomić `python -m app.seed`.
+
+## Kwestionariusz
+
+Pytania są zdefiniowane w `app/data/questions.py` i udostępniane przez `GET /api/v1/questionnaire`.
+Frontend buduje z nich formularz, więc zmiana pytań nie wymaga zmian w interfejsie.
+
+| Sekcja                 | Pytania                                                           | Wymagane |
+|------------------------|-------------------------------------------------------------------|----------|
+| Dane podstawowe        | wiek, płeć, wzrost, waga, cel, aktywność                          | tak      |
+| Dane podstawowe        | staż treningowy                                                   | nie      |
+| Zdrowie i ograniczenia | kontuzje i schorzenia, poziom bólu*, zgoda lekarza**              | nie      |
+| Testy sprawności       | pompki, przysiady w 1 min, deska, tętno spoczynkowe               | nie      |
+| Preferencje            | dni treningowe w tygodniu, długość treningu, dostępny sprzęt      | nie      |
+
+\* tylko przy zgłoszonych ograniczeniach, \*\* tylko przy nadciśnieniu lub chorobie serca.
+Odpowiedź na pytanie, którego warunek nie jest spełniony, jest odrzucana (422).
+
+**Kompletność danych** (`data_completeness`, 0–100) to procent pytań opcjonalnych, na które
+odpowiedziano, liczony tylko spośród pytań widocznych dla danego użytkownika.
+
+**Ostrzeżenia zdrowotne** nie blokują zapisu profilu, a wskazują potrzebę konsultacji:
+choroba układu krążenia bez zgody lekarza, ból od 7/10, tętno spoczynkowe powyżej 100/min.
 
 Przeciwwskazania w atlasie są uproszczone i służą celom projektu; nie zastępują konsultacji
 z lekarzem ani fizjoterapeutą.
@@ -83,5 +108,7 @@ z lekarzem ani fizjoterapeutą.
 | `GET /api/v1/exercises/{id}`       | Odczyt ćwiczenia                                            |
 | `PUT /api/v1/exercises/{id}`       | Zastąpienie danych ćwiczenia                                |
 | `DELETE /api/v1/exercises/{id}`    | Usunięcie ćwiczenia (204)                                   |
+| `GET /api/v1/questionnaire`        | Definicja pytań kwestionariusza z warunkami wyświetlania    |
+| `POST /api/v1/questionnaire`       | Wysłanie odpowiedzi: profil, braki w danych, ostrzeżenia    |
 
 Pełna, interaktywna dokumentacja jest dostępna po uruchomieniu serwera pod adresem `/docs`.

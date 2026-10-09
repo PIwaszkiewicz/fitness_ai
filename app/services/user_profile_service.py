@@ -9,11 +9,13 @@ from sqlalchemy.orm import Session
 
 from app.models import UserProfile
 from app.schemas import UserProfileCreate
+from app.services.completeness import calculate_completeness
 
 
 def create_profile(db: Session, data: UserProfileCreate) -> UserProfile:
-    """Zapisuje nowy profil i zwraca go z nadanym identyfikatorem."""
-    profile = UserProfile(**data.model_dump())
+    """Zapisuje nowy profil (z wyliczoną kompletnością danych) i zwraca go z identyfikatorem."""
+    answers = data.model_dump()
+    profile = UserProfile(**answers, data_completeness=calculate_completeness(answers))
     db.add(profile)
     db.commit()
     db.refresh(profile)
@@ -32,9 +34,11 @@ def list_profiles(db: Session, skip: int = 0, limit: int = 50) -> list[UserProfi
 
 
 def update_profile(db: Session, profile: UserProfile, data: UserProfileCreate) -> UserProfile:
-    """Nadpisuje wszystkie pola profilu nowymi danymi."""
-    for field, value in data.model_dump().items():
+    """Nadpisuje wszystkie pola profilu nowymi danymi i przelicza kompletność."""
+    answers = data.model_dump()
+    for field, value in answers.items():
         setattr(profile, field, value)
+    profile.data_completeness = calculate_completeness(answers)
     db.commit()
     db.refresh(profile)
     return profile

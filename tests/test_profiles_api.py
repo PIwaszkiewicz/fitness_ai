@@ -18,7 +18,11 @@ def test_tworzenie_i_odczyt_profilu(client):
 
     response = client.get(f"/api/v1/profiles/{profile_id}")
     assert response.status_code == 200
-    assert response.json() == {**PROFILE, "id": profile_id}
+    body = response.json()
+    assert {key: body[key] for key in PROFILE} == PROFILE
+    assert body["id"] == profile_id
+    assert body["pushups"] is None  # pole opcjonalne bez odpowiedzi
+    assert body["data_completeness"] == 0
 
 
 def test_bledne_dane_zwracaja_422(client):
@@ -39,6 +43,14 @@ def test_edycja_profilu(client):
     response = client.put(f"/api/v1/profiles/{profile_id}", json={**PROFILE, "weight_kg": 62})
     assert response.status_code == 200
     assert response.json()["weight_kg"] == 62
+
+
+def test_edycja_przelicza_kompletnosc(client):
+    profile_id = client.post("/api/v1/profiles", json=PROFILE).json()["id"]
+    updated = {**PROFILE, "pushups": 20, "squats": 30, "pain_level": 3}
+    response = client.put(f"/api/v1/profiles/{profile_id}", json=updated)
+    # Widocznych pytań opcjonalnych jest 9 (8 stałych + ból przy kontuzji), odpowiedzi 3.
+    assert response.json()["data_completeness"] == 33
 
 
 def test_usuwanie_profilu(client):

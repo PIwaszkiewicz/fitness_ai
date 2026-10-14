@@ -47,6 +47,11 @@ def list_exercises(
     return list(db.scalars(query))
 
 
+def list_all_exercises(db: Session) -> list[Exercise]:
+    """Zwraca cały atlas ćwiczeń (bez stronicowania), np. do budowy planu."""
+    return list(db.scalars(select(Exercise).order_by(Exercise.id)))
+
+
 def update_exercise(db: Session, exercise: Exercise, data: ExerciseCreate) -> Exercise:
     """Nadpisuje wszystkie pola ćwiczenia nowymi danymi."""
     for field, value in data.model_dump().items():

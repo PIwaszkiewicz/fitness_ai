@@ -123,6 +123,24 @@ choroba układu krążenia bez zgody lekarza, ból od 7/10, tętno spoczynkowe p
 Przeciwwskazania w atlasie są uproszczone i służą celom projektu; nie zastępują konsultacji
 z lekarzem ani fizjoterapeutą.
 
+## Plan treningowy
+
+Plan jest generowany na żądanie z aktualnego profilu (`app/services/plan_generator.py`),
+więc po aktualizacji profilu kolejne zapytanie zwraca plan dostosowany do nowych danych.
+
+1. Poziom sprawności wyznacza wybrany klasyfikator (gdy model ML nie jest wytrenowany,
+   używany jest system regułowy).
+2. Dopuszczone są ćwiczenia z dostępnym sprzętem (masa ciała zawsze), o trudności
+   nie większej niż poziom sprawności i **bez przeciwwskazań** dla ograniczeń użytkownika.
+3. Serie, powtórzenia i przerwy zależą od celu (np. siła: 4 × 4–6, przerwa 150 s);
+   osoby początkujące wykonują jedną serię mniej.
+4. Liczba ćwiczeń (3–8) wynika z długości treningu po odjęciu 10 minut rozgrzewki.
+5. Przy 1–3 dniach w tygodniu każdy trening obejmuje całe ciało, przy 4–7 dniach
+   treningi góry i dołu ciała następują na zmianę. Ćwiczenia rotują między dniami.
+6. Plan zawiera rekomendacje progresji i ostrzeżenia zdrowotne z kwestionariusza.
+
+Domyślnie (gdy brak odpowiedzi): 3 dni w tygodniu, 45 minut, ćwiczenia z masą ciała.
+
 ## Endpointy API v1
 
 | Metoda i ścieżka                   | Opis                                                        |
@@ -141,5 +159,6 @@ z lekarzem ani fizjoterapeutą.
 | `GET /api/v1/questionnaire`        | Definicja pytań kwestionariusza z warunkami wyświetlania    |
 | `POST /api/v1/questionnaire`       | Wysłanie odpowiedzi: profil, braki w danych, ostrzeżenia    |
 | `GET /api/v1/profiles/{id}/fitness-level` | Poziom sprawności, `method`: `rules`, `decision_tree`, `mlp` |
+| `GET /api/v1/profiles/{id}/plan`   | Tygodniowy plan treningowy (`method` jak wyżej)             |
 
 Pełna, interaktywna dokumentacja jest dostępna po uruchomieniu serwera pod adresem `/docs`.

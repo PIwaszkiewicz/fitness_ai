@@ -14,6 +14,7 @@
 | `app/ml/`               | Moduły AI: klasyfikacja sprawności (opis: `docs/ML.md`)       |
 | `app/data/`             | Dane: atlas ćwiczeń (`exercises.json`), pytania (`questions.py`) |
 | `app/seed.py`           | Skrypt wypełniający bazę atlasem ćwiczeń                      |
+| `experiments/`          | Eksperymenty badawcze i zapis do MLflow (opis: `docs/EXPERIMENTS.md`) |
 | `tests/`                | Testy automatyczne (pytest)                                   |
 | `docs/`                 | Dokumentacja projektu                                         |
 | `.github/workflows/`    | Ciągła integracja (GitHub Actions)                            |
@@ -21,7 +22,8 @@
 | `docker-compose.yml`    | Uruchomienie całego systemu jednym poleceniem                 |
 | `docs/PLAN.md`          | Plan projektu z listą kroków                                  |
 | `CONTEXT.md`            | Opis projektu, cele i zakres pracy                            |
-| `requirements.txt`      | Lista zależności Pythona                                      |
+| `requirements.txt`      | Zależności potrzebne do działania serwera                     |
+| `requirements-dev.txt`  | Dodatkowo testy, ruff i narzędzia do eksperymentów            |
 
 ## Uruchomienie lokalne
 
@@ -30,8 +32,8 @@
 python3.12 -m venv .venv
 source .venv/bin/activate
 
-# 2. Instalacja zależności
-pip install -r requirements.txt
+# 2. Instalacja zależności (serwer + testy, ruff, MLflow)
+pip install -r requirements-dev.txt
 
 # 3. Wypełnienie bazy startowym atlasem ćwiczeń (można uruchamiać wielokrotnie)
 python -m app.seed
@@ -45,6 +47,10 @@ uvicorn app.main:app --reload
 # 6. Testy i sprawdzenie jakości kodu
 pytest
 ruff check .
+
+# 7. Eksperymenty badawcze (wyniki w docs/experiments/) i ich przeglądanie w MLflow
+python -m experiments.run
+mlflow ui
 ```
 
 ## Uruchomienie w Dockerze

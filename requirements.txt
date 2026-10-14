@@ -1,3 +1,6 @@
+# Zależności potrzebne do działania serwera (instalowane w obrazie Dockera).
+# Narzędzia deweloperskie i eksperymenty: requirements-dev.txt
+
 # Serwer API
 fastapi==0.143.0
 uvicorn==0.54.0
@@ -10,10 +13,3 @@ sqlalchemy==2.1.4
 scikit-learn==1.9.1
 pandas==3.0.6
 numpy==2.5.3
-
-# Testy
-pytest==9.1.1
-httpx==0.28.1
-
-# Jakość kodu
-ruff==0.16.10

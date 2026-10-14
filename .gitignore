@@ -26,6 +26,10 @@ venv/
 *.pkl
 *.joblib
 
+# Wyniki śledzenia eksperymentów (MLflow)
+mlruns/
+mlartifacts/
+
 # Cache narzędzi
 .pytest_cache/
 .ruff_cache/

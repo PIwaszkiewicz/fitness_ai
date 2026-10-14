@@ -1,0 +1,4 @@
+classifier,accuracy_mean,accuracy_std,f1_macro_mean,f1_macro_std,train_seconds_mean,train_seconds_std,latency_ms_mean,latency_ms_std
+rules,0.7917,0.0035,0.7921,0.0026,0.0,0.0,0.0216,0.0006
+decision_tree,0.8075,0.0066,0.8076,0.0064,0.0118,0.001,0.4414,0.0251
+mlp,0.8658,0.0119,0.8644,0.0122,0.1329,0.0349,0.5319,0.0156

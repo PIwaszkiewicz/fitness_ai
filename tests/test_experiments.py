@@ -1,0 +1,57 @@
+"""Testy kodu eksperymentów (na małych danych, żeby działały szybko)."""
+
+import numpy as np
+import pandas as pd
+import pytest
+
+from app.ml.data_generator import generate_dataset, remove_answers
+from app.ml.features import OPTIONAL_FEATURES
+from experiments.evaluation import (
+    TEST_MISSING_RATES,
+    compare_classifiers,
+    completeness_study,
+    summarize,
+)
+from experiments.run import run_experiments
+
+
+def test_usuwanie_odpowiedzi():
+    X, _ = generate_dataset(300)
+    rng = np.random.default_rng(0)
+    pd.testing.assert_frame_equal(remove_answers(X, 0.0, rng), X)
+    emptied = remove_answers(X, 1.0, rng)
+    assert emptied[OPTIONAL_FEATURES].isna().all().all()
+    assert not X[OPTIONAL_FEATURES].isna().any().any()  # oryginał bez zmian
+
+
+def test_porownanie_klasyfikatorow():
+    results, matrices = compare_classifiers(seeds=[1], n_samples=600)
+    assert list(results["classifier"]) == ["rules", "decision_tree", "mlp"]
+    assert results["accuracy"].between(0, 1).all()
+    assert (results["latency_ms"] > 0).all()
+    # Macierz pomyłek obejmuje wszystkie osoby testowe (25% z 600).
+    assert all(matrix.sum() == 150 for matrix in matrices.values())
+
+
+def test_braki_obnizaja_trafnosc():
+    results = completeness_study(seeds=[1], n_samples=1500)
+    assert len(results) == 3 * len(TEST_MISSING_RATES)
+    mlp = results[results["classifier"] == "mlp"].set_index("test_missing_rate")
+    assert mlp.loc[0.0, "accuracy"] > mlp.loc[1.0, "accuracy"]
+
+
+def test_podsumowanie_liczy_srednia_i_odchylenie():
+    results = pd.DataFrame({"classifier": ["a", "a"], "accuracy": [0.8, 0.9]})
+    summary = summarize(results, ["classifier"], ["accuracy"])
+    assert summary.loc[0, "accuracy_mean"] == pytest.approx(0.85)
+    assert summary.loc[0, "accuracy_std"] > 0
+
+
+def test_uruchomienie_eksperymentow(tmp_path, monkeypatch):
+    # MLflow zapisuje do bazy w katalogu tymczasowym, a nie w katalogu projektu.
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", f"sqlite:///{tmp_path / 'mlflow.db'}")
+    output = tmp_path / "wyniki"
+    run_experiments(output, seeds=[1], n_samples=400)
+    expected = {"comparison.csv", "completeness.csv", "confusion_matrices.png", "completeness.png"}
+    assert {path.name for path in output.iterdir()} == expected

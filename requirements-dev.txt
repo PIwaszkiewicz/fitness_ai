@@ -1,0 +1,13 @@
+# Zależności do pracy lokalnej i CI: wszystko z requirements.txt oraz narzędzia deweloperskie.
+-r requirements.txt
+
+# Testy
+pytest==9.1.1
+httpx==0.28.1
+
+# Jakość kodu
+ruff==0.16.10
+
+# Eksperymenty: śledzenie wyników i wykresy
+mlflow==3.17.1
+matplotlib==3.11.2

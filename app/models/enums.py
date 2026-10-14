@@ -92,6 +92,17 @@ class Equipment(StrEnum):
     MACHINE = "machine"
 
 
+class FitnessLevel(StrEnum):
+    """Poziom sprawności użytkownika wyznaczany przez klasyfikatory.
+
+    Wartości są takie same jak w Difficulty, żeby łatwo dobierać ćwiczenia do poziomu.
+    """
+
+    BEGINNER = "beginner"
+    INTERMEDIATE = "intermediate"
+    ADVANCED = "advanced"
+
+
 class Difficulty(StrEnum):
     """Poziom trudności ćwiczenia (odpowiada poziomom sprawności użytkownika)."""
 

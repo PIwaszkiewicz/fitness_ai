@@ -11,7 +11,7 @@
 | `app/models/`           | Modele bazy danych (SQLAlchemy) i słowniki wartości (enumy)   |
 | `app/schemas/`          | Schematy walidacji danych wejściowych i odpowiedzi (Pydantic) |
 | `app/services/`         | Logika biznesowa łącząca API, bazę danych i moduły ML         |
-| `app/ml/`               | Moduły AI: klasyfikacja sprawności, generowanie planów        |
+| `app/ml/`               | Moduły AI: klasyfikacja sprawności (opis: `docs/ML.md`)       |
 | `app/data/`             | Dane: atlas ćwiczeń (`exercises.json`), pytania (`questions.py`) |
 | `app/seed.py`           | Skrypt wypełniający bazę atlasem ćwiczeń                      |
 | `tests/`                | Testy automatyczne (pytest)                                   |
@@ -36,10 +36,13 @@ pip install -r requirements.txt
 # 3. Wypełnienie bazy startowym atlasem ćwiczeń (można uruchamiać wielokrotnie)
 python -m app.seed
 
-# 4. Uruchomienie serwera (adres: http://127.0.0.1:8000, dokumentacja: /docs)
+# 4. Uczenie modeli klasyfikacji sprawności (zapis do app/ml/artifacts/)
+python -m app.ml.train
+
+# 5. Uruchomienie serwera (adres: http://127.0.0.1:8000, dokumentacja: /docs)
 uvicorn app.main:app --reload
 
-# 5. Testy i sprawdzenie jakości kodu
+# 6. Testy i sprawdzenie jakości kodu
 pytest
 ruff check .
 ```
@@ -59,7 +62,7 @@ docker compose down
 docker compose down -v
 ```
 
-Przy starcie kontener sam tworzy tabele i wgrywa atlas ćwiczeń. Baza SQLite leży w wolumenie
+Modele ML są uczone podczas budowy obrazu. Przy starcie kontener sam tworzy tabele i wgrywa atlas ćwiczeń. Baza SQLite leży w wolumenie
 `fitness_data` (katalog `/data` w kontenerze), więc przetrwa usunięcie i ponowne utworzenie kontenera.
 CI przy każdym pull requeście buduje obraz, uruchamia kontener i sprawdza endpoint `/health`.
 
@@ -131,5 +134,6 @@ z lekarzem ani fizjoterapeutą.
 | `DELETE /api/v1/exercises/{id}`    | Usunięcie ćwiczenia (204)                                   |
 | `GET /api/v1/questionnaire`        | Definicja pytań kwestionariusza z warunkami wyświetlania    |
 | `POST /api/v1/questionnaire`       | Wysłanie odpowiedzi: profil, braki w danych, ostrzeżenia    |
+| `GET /api/v1/profiles/{id}/fitness-level` | Poziom sprawności, `method`: `rules`, `decision_tree`, `mlp` |
 
 Pełna, interaktywna dokumentacja jest dostępna po uruchomieniu serwera pod adresem `/docs`.

@@ -34,6 +34,10 @@ jobs:
       - name: Pytest
         run: pytest
 
+      # Sprawdzenie składni JavaScriptu frontendu (Node.js jest dostępny w maszynie CI)
+      - name: Składnia JavaScript
+        run: node --check app/static/app.js
+
   # Sprawdzenie, czy obraz Dockera się buduje i serwer w kontenerze odpowiada.
   docker:
     runs-on: ubuntu-latest

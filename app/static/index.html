@@ -1,0 +1,44 @@
+<!doctype html>
+<!-- Strona aplikacji: kwestionariusz i widok planu. Treść pytań i planu wstawia app.js. -->
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fitness AI</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="header">
+    <h1>Fitness AI</h1>
+    <p>Wywiad sprawnościowy i plan treningowy dopasowany do Ciebie</p>
+  </header>
+
+  <main class="container">
+    <!-- Widok 1: kwestionariusz (pola generowane z definicji pytań pobranej z API) -->
+    <section id="questionnaire-view">
+      <form id="questionnaire-form">
+        <div id="questions"><p class="muted">Wczytywanie pytań…</p></div>
+        <div id="form-errors" class="alert alert-error" hidden></div>
+        <button type="submit" class="button-primary">Wyślij odpowiedzi</button>
+      </form>
+    </section>
+
+    <!-- Widok 2: wynik wywiadu i plan treningowy -->
+    <section id="result-view" hidden>
+      <div id="summary"></div>
+      <div class="card classifier">
+        <label for="classifier">Klasyfikator poziomu sprawności</label>
+        <select id="classifier">
+          <option value="mlp">Sieć neuronowa (MLP)</option>
+          <option value="decision_tree">Drzewo decyzyjne</option>
+          <option value="rules">System regułowy</option>
+        </select>
+      </div>
+      <div id="plan"><p class="muted">Wczytywanie planu…</p></div>
+      <button type="button" id="restart" class="button-secondary">Wypełnij kwestionariusz ponownie</button>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

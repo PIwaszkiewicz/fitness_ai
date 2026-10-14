@@ -17,6 +17,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 
+# Uczenie modeli ML podczas budowy obrazu: gotowe modele są częścią obrazu.
+RUN python -m app.ml.train
+
 # Serwer działa jako zwykły użytkownik, nie root (zasada najmniejszych uprawnień).
 # Katalog /data przechowuje plik bazy SQLite i jest podpinany jako wolumen.
 RUN useradd --create-home appuser && mkdir /data && chown appuser /data

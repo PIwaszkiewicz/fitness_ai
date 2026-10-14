@@ -8,7 +8,7 @@ Każdy krok realizowany jest na osobnej gałęzi i scalany do `main` przez pull 
 - [x] **Krok 3.** CRUD profili i ćwiczeń, startowy atlas ok. 30 ćwiczeń (skrypt seed)
 - [x] **Krok 4.** Kwestionariusz: endpoint przyjmujący odpowiedzi, walidacja, zapis profilu
 - [x] **Krok 5.** Docker + docker-compose
-- [ ] **Krok 6.** Moduł ML: klasyfikacja poziomu sprawności
+- [x] **Krok 6.** Moduł ML: klasyfikacja poziomu sprawności
   - system regułowy (baseline)
   - drzewo decyzyjne
   - sieć neuronowa (`MLPClassifier`)

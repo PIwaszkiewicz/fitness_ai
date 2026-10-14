@@ -6,10 +6,12 @@ import pytest
 
 from app.ml.data_generator import generate_dataset, remove_answers
 from app.ml.features import OPTIONAL_FEATURES
+from app.seed import load_atlas
 from experiments.evaluation import (
     TEST_MISSING_RATES,
     compare_classifiers,
     completeness_study,
+    contraindication_study,
     summarize,
 )
 from experiments.run import run_experiments
@@ -53,5 +55,23 @@ def test_uruchomienie_eksperymentow(tmp_path, monkeypatch):
     monkeypatch.setenv("MLFLOW_TRACKING_URI", f"sqlite:///{tmp_path / 'mlflow.db'}")
     output = tmp_path / "wyniki"
     run_experiments(output, seeds=[1], n_samples=400)
-    expected = {"comparison.csv", "completeness.csv", "confusion_matrices.png", "completeness.png"}
+    expected = {
+        "comparison.csv",
+        "completeness.csv",
+        "confusion_matrices.png",
+        "completeness.png",
+        "contraindications.csv",
+        "contraindications_per_limitation.csv",
+        "contraindications.png",
+    }
     assert {path.name for path in output.iterdir()} == expected
+
+
+def test_wykrywanie_przeciwwskazan():
+    summary, per_limitation = contraindication_study(load_atlas())
+    assert list(summary["detector"]) == ["rules", "decision_tree", "hybrid"]
+    assert summary[["precision", "recall", "f1"]].stack().between(0, 1).all()
+    assert len(per_limitation) == 3 * 10
+    # Hybryda to suma wyników, więc nie może przeoczyć więcej niż reguły czy drzewo.
+    missed = summary.set_index("detector")["missed"]
+    assert missed["hybrid"] <= min(missed["rules"], missed["decision_tree"])

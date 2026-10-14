@@ -12,7 +12,13 @@ import pandas as pd
 from matplotlib.figure import Figure
 from sklearn.metrics import ConfusionMatrixDisplay
 
-from experiments.evaluation import compare_classifiers, completeness_study, summarize
+from app.seed import load_atlas
+from experiments.evaluation import (
+    compare_classifiers,
+    completeness_study,
+    contraindication_study,
+    summarize,
+)
 
 SEEDS = [1, 2, 3, 4, 5]
 N_SAMPLES = 5000
@@ -25,6 +31,16 @@ CLASSIFIER_NAMES = {
     "mlp": "Sieć neuronowa (MLP)",
 }
 LEVEL_NAMES = ["początkujący", "średni", "zaawansowany"]
+DETECTOR_NAMES = {
+    "rules": "Reguły eksperckie",
+    "decision_tree": "Drzewo decyzyjne",
+    "hybrid": "Hybryda (suma)",
+}
+LIMITATION_NAMES = {
+    "knee": "kolano", "hip": "biodro", "ankle": "staw skokowy", "lower_back": "lędźwie",
+    "shoulder": "bark", "elbow": "łokieć", "wrist": "nadgarstek", "neck": "szyja",
+    "hypertension": "nadciśnienie", "heart_condition": "serce",
+}
 
 
 def plot_confusion_matrices(matrices: dict, path: Path) -> None:
@@ -67,6 +83,28 @@ def plot_completeness(summary: pd.DataFrame, path: Path) -> None:
     figure.savefig(path, dpi=120)
 
 
+def plot_contraindications(per_limitation: pd.DataFrame, path: Path) -> None:
+    """Rysuje recall i precyzję wykrywania dla każdego ograniczenia i obu detektorów."""
+    figure = Figure(figsize=(12, 7))
+    axes = figure.subplots(2, 1, sharex=True)
+    limitations = per_limitation["limitation"].unique()
+    positions = range(len(limitations))
+    width = 0.27
+    offsets = (-width, 0, width)
+    for ax, metric, title in zip(axes, ["recall", "precision"], ["Recall", "Precyzja"]):
+        for offset, (name, group) in zip(offsets, per_limitation.groupby("detector", sort=False)):
+            ax.bar([p + offset for p in positions], group[metric], width, label=DETECTOR_NAMES[name])
+        ax.set_ylabel(title)
+        ax.set_ylim(0, 1.05)
+        ax.grid(axis="y", alpha=0.3)
+    axes[0].set_title("Wykrywanie przeciwwskazań dla nowych ćwiczeń (leave-one-out)")
+    axes[0].set_ylim(0, 1.3)  # miejsce na legendę nad słupkami
+    axes[0].legend(loc="upper center", ncols=3)
+    axes[1].set_xticks(list(positions), [LIMITATION_NAMES[item] for item in limitations], rotation=30)
+    figure.tight_layout()
+    figure.savefig(path, dpi=120)
+
+
 def log_runs(experiment: str, results: pd.DataFrame, params: list[str], metrics: list[str]) -> None:
     """Zapisuje każdy wiersz wyników jako osobny przebieg (run) w MLflow."""
     mlflow.set_experiment(experiment)
@@ -101,9 +139,27 @@ def run_experiments(output_dir: Path, seeds: list[int], n_samples: int) -> None:
     with mlflow.start_run(run_name="wykres-kompletnosci"):
         mlflow.log_artifact(str(output_dir / "completeness.png"))
 
+    # Eksperyment 3: wykrywanie przeciwwskazań dla nowych ćwiczeń
+    detection_summary, per_limitation = contraindication_study(load_atlas())
+    detection_summary.round(4).to_csv(output_dir / "contraindications.csv", index=False)
+    per_limitation.round(4).to_csv(output_dir / "contraindications_per_limitation.csv", index=False)
+    plot_contraindications(per_limitation, output_dir / "contraindications.png")
+    log_runs(
+        "wykrywanie-przeciwwskazan",
+        detection_summary,
+        ["detector"],
+        ["precision", "recall", "f1", "missed", "false_alarms", "exact_match"],
+    )
+    with mlflow.start_run(run_name="wykres-przeciwwskazan"):
+        mlflow.log_artifact(str(output_dir / "contraindications.png"))
+
     print(comparison_summary.round(3).to_string(index=False))
     print()
     print(completeness_summary.round(3).to_string(index=False))
+    print()
+    print(detection_summary.round(3).to_string(index=False))
+    print()
+    print(per_limitation.round(2).to_string(index=False))
 
 
 if __name__ == "__main__":

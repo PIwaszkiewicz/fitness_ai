@@ -88,7 +88,7 @@ Tabele tworzone są automatycznie przy starcie serwera (plik `fitness_ai.db`, wy
 | Tabela          | Zawartość                                                                       |
 |-----------------|---------------------------------------------------------------------------------|
 | `user_profiles` | Odpowiedzi z kwestionariusza: dane podstawowe, zdrowie, testy, preferencje, kompletność |
-| `exercises`     | Nazwa, grupa mięśniowa, sprzęt, poziom trudności, przeciwwskazania               |
+| `exercises`     | Nazwa, grupa mięśniowa, sprzęt, poziom trudności, wzorzec ruchu, przeciwwskazania |
 
 Ograniczenia użytkownika i przeciwwskazania ćwiczeń korzystają z tego samego słownika
 (`Limitation` w `app/models/enums.py`), więc konflikt wykrywa się porównaniem dwóch zbiorów.
@@ -120,7 +120,7 @@ odpowiedziano, liczony tylko spośród pytań widocznych dla danego użytkownika
 **Ostrzeżenia zdrowotne** nie blokują zapisu profilu, a wskazują potrzebę konsultacji:
 choroba układu krążenia bez zgody lekarza, ból od 7/10, tętno spoczynkowe powyżej 100/min.
 
-Przeciwwskazania w atlasie są uproszczone i służą celom projektu; nie zastępują konsultacji
+Atlas zawiera 67 ćwiczeń. Przeciwwskazania w atlasie są uproszczone i służą celom projektu; nie zastępują konsultacji
 z lekarzem ani fizjoterapeutą.
 
 ## Plan treningowy
@@ -152,6 +152,7 @@ Domyślnie (gdy brak odpowiedzi): 3 dni w tygodniu, 45 minut, ćwiczenia z masą
 | `PUT /api/v1/profiles/{id}`        | Zastąpienie danych profilu                                  |
 | `DELETE /api/v1/profiles/{id}`     | Usunięcie profilu (204)                                     |
 | `POST /api/v1/exercises`           | Dodanie ćwiczenia (zajęta nazwa: 409)                       |
+| `POST /api/v1/exercises/suggest-contraindications` | Podpowiedź przeciwwskazań z cech ćwiczenia  |
 | `GET /api/v1/exercises`            | Lista ćwiczeń, filtry `muscle_group`, `equipment`, `difficulty` |
 | `GET /api/v1/exercises/{id}`       | Odczyt ćwiczenia                                            |
 | `PUT /api/v1/exercises/{id}`       | Zastąpienie danych ćwiczenia                                |

@@ -15,8 +15,8 @@ Kod: `experiments/evaluation.py` (eksperymenty), `experiments/run.py` (zapis wyn
   - **F1 makro:** średnia miar F1 dla trzech poziomów (każdy poziom ma tę samą wagę),
   - **macierz pomyłek:** jaka część osób z danego poziomu trafiła do każdej klasy,
   - **czas uczenia** i **czas klasyfikacji jednej osoby** (odpowiada jednemu żądaniu API).
-- Wszystkie przebiegi są zapisywane w MLflow (eksperymenty `porownanie-klasyfikatorow`
-  i `wplyw-kompletnosci`).
+- Wszystkie przebiegi są zapisywane w MLflow (eksperymenty `porownanie-klasyfikatorow`,
+  `wplyw-kompletnosci` i `wykrywanie-przeciwwskazan`).
 
 Odtworzenie wyników:
 
@@ -33,7 +33,7 @@ Dane testowe z 20% pominiętych odpowiedzi opcjonalnych (`docs/experiments/compa
 | Klasyfikator       | Accuracy        | F1 makro        | Czas uczenia | Czas klasyfikacji 1 osoby |
 |--------------------|-----------------|-----------------|--------------|---------------------------|
 | System regułowy    | 0,792 ± 0,003   | 0,792 ± 0,003   | —            | 0,02 ms                   |
-| Drzewo decyzyjne   | 0,808 ± 0,007   | 0,808 ± 0,006   | 0,01 s       | 0,44 ms                   |
+| Drzewo decyzyjne   | 0,808 ± 0,007   | 0,808 ± 0,006   | 0,01 s       | 0,42 ms                   |
 | Sieć neuronowa     | 0,866 ± 0,012   | 0,864 ± 0,012   | 0,13 s       | 0,53 ms                   |
 
 ![Macierze pomyłek](experiments/confusion_matrices.png)
@@ -83,8 +83,59 @@ i poziom aktywności (`docs/experiments/completeness.csv`).
 regułowego albo poinformować użytkownika, że wynik jest mało wiarygodny. API zwraca w tym celu
 kompletność danych (`data_completeness`) razem z wynikiem klasyfikacji.
 
+## Eksperyment 3: wykrywanie przeciwwskazań dla nowych ćwiczeń
+
+**Pytanie:** czy przeciwwskazania ćwiczenia da się przewidzieć z jego cech (wzorzec ruchu,
+grupa mięśniowa, sprzęt, trudność), np. przy dodawaniu do atlasu nowego ćwiczenia?
+
+**Metodyka:**
+- Wzorzec: ręczne etykiety przeciwwskazań 67 ćwiczeń atlasu (`app/data/exercises.json`).
+- Walidacja krzyżowa *leave-one-out*: każde ćwiczenie po kolei jest traktowane jak nowe,
+  a detektor uczy się na pozostałych 66.
+- Każda para (ćwiczenie, ograniczenie) to jedna decyzja binarna, łącznie 670 decyzji
+  (108 przeciwwskazań w atlasie). Metryki: precyzja, recall, F1 (mikro) oraz liczba
+  przeoczonych przeciwwskazań i fałszywych alarmów.
+- Porównane detektory (`app/ml/contraindication_detection.py`):
+  - **reguły eksperckie:** 5 reguł opartych na budowie ćwiczenia (np. przysiad → kolano,
+    sztanga w ciężkich ćwiczeniach → lędźwie i nadciśnienie, ćwiczenia dynamiczne → serce),
+  - **drzewo decyzyjne** uczone na atlasie (klasyfikacja wieloetykietowa, cechy one-hot),
+  - **hybryda:** suma wyników reguł i drzewa.
+
+Wyniki (`docs/experiments/contraindications.csv`):
+
+| Detektor           | Precyzja | Recall | F1    | Przeoczone | Fałszywe alarmy | Całe ćwiczenie poprawnie |
+|--------------------|----------|--------|-------|------------|-----------------|--------------------------|
+| Reguły eksperckie  | 0,839    | 0,676  | 0,749 | 35         | 14              | 46%                      |
+| Drzewo decyzyjne   | 0,701    | 0,630  | 0,663 | 40         | 29              | 39%                      |
+| Hybryda (suma)     | 0,680    | 0,769  | 0,722 | 25         | 39              | 33%                      |
+
+![Wykrywanie przeciwwskazań](experiments/contraindications.png)
+
+**Obserwacje:**
+
+1. Reguły eksperckie mają najlepszą precyzję i F1. Przy 67 przykładach drzewo nie ma z czego
+   nauczyć się zależności, które ekspert zapisuje w kilku regułach.
+2. Drzewo wygrywa tam, gdzie zależność jest prosta i spójna w atlasie: choroba serca
+   (recall 1,00 wobec 0,57 reguł) i staw skokowy.
+3. Hybryda ma najwyższy recall (0,769, o 10 przeoczeń mniej niż reguły) kosztem precyzji.
+   W kontekście bezpieczeństwa to korzystna wymiana: fałszywy alarm tylko zawęża wybór
+   ćwiczeń, a przeoczenie oznacza ryzyko kontuzji.
+4. Żadna metoda nie jest wystarczająco dokładna, by działać bez człowieka: nawet hybryda
+   przeocza ok. 1/4 przeciwwskazań. Najsłabiej wykrywane są biodro i nadgarstek, które zależą
+   od szczegółów techniki, a nie od ogólnych cech ćwiczenia.
+5. Górną granicę trafności wyznaczają same dane: 14 z 67 ćwiczeń ma identyczne cechy jak inne
+   ćwiczenie, a różne przeciwwskazania (np. przysiad goblet i przysiad sumo z kettlebell
+   różnią się obciążeniem biodra). Żadna metoda oparta na tych cechach nie rozróżni ich.
+
+**Wniosek projektowy:** w aplikacji detektor hybrydowy służy wyłącznie jako **podpowiedź**
+przy dodawaniu ćwiczenia (`POST /api/v1/exercises/suggest-contraindications`). Plan treningowy
+korzysta zawsze z przeciwwskazań zatwierdzonych przez człowieka, więc filtr bezpieczeństwa
+w planie nie przepuszcza żadnego ćwiczenia przeciwwskazanego według atlasu.
+
 ## Ograniczenia
 
+- Etykiety przeciwwskazań w atlasie i reguły eksperckie pochodzą od autora systemu,
+  a nie od niezależnego eksperta (fizjoterapeuty), co może zawyżać wyniki reguł.
 - Dane są syntetyczne, więc wyniki porównują metody w kontrolowanych warunkach przyjętego
   modelu generowania, a nie trafność na prawdziwych użytkownikach.
 - Braki danych są losowe i niezależne od siebie. W rzeczywistości użytkownicy mogą częściej

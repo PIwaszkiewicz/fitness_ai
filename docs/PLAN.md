@@ -17,7 +17,7 @@ Każdy krok realizowany jest na osobnej gałęzi i scalany do `main` przez pull 
   - porównanie algorytmów (accuracy, F1, macierz pomyłek)
   - wpływ kompletności danych na wyniki
   - śledzenie eksperymentów w MLflow
-- [ ] **Krok 8.** Generator planu treningowego
+- [x] **Krok 8.** Generator planu treningowego
   - filtrowanie ćwiczeń po przeciwwskazaniach
   - pomiar precyzji i recall wykrywania przeciwwskazań
 - [ ] **Krok 9.** Frontend kwestionariusza i widok planu

@@ -2,18 +2,32 @@
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.models.enums import Difficulty, Equipment, Limitation, MuscleGroup
+from app.models.enums import (
+    Difficulty,
+    Equipment,
+    Limitation,
+    MovementPattern,
+    MuscleGroup,
+)
 
 
-class ExerciseCreate(BaseModel):
-    """Dane potrzebne do dodania ćwiczenia do atlasu."""
+class ExerciseFeatures(BaseModel):
+    """Cechy opisujące ćwiczenie, na podstawie których można przewidywać jego przeciwwskazania."""
 
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    model_config = ConfigDict(extra="forbid")
 
-    name: str = Field(min_length=2, max_length=100)
     muscle_group: MuscleGroup
     equipment: Equipment
     difficulty: Difficulty
+    movement_pattern: MovementPattern
+
+
+class ExerciseCreate(ExerciseFeatures):
+    """Dane potrzebne do dodania ćwiczenia do atlasu: nazwa, cechy i przeciwwskazania."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    name: str = Field(min_length=2, max_length=100)
     contraindications: list[Limitation] = Field(default_factory=list)
 
     @field_validator("contraindications")

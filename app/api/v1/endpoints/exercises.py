@@ -6,9 +6,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import DbSession, Limit, Skip
+from app.ml.contraindication_detection import (
+    LIMITATIONS,
+    HybridDetector,
+    RuleBasedDetector,
+)
 from app.models import Exercise
 from app.models.enums import Difficulty, Equipment, MuscleGroup
-from app.schemas import ExerciseCreate, ExerciseRead
+from app.schemas import ExerciseCreate, ExerciseFeatures, ExerciseRead
+from app.schemas.contraindication import ContraindicationSuggestion
 from app.services import exercise_service as service
 
 router = APIRouter(prefix="/exercises", tags=["Atlas ćwiczeń"])
@@ -41,6 +47,26 @@ def create_exercise(data: ExerciseCreate, db: DbSession):
     """Dodaje ćwiczenie do atlasu."""
     ensure_name_is_free(db, data.name)
     return service.create_exercise(db, data)
+
+
+@router.post("/suggest-contraindications", response_model=ContraindicationSuggestion)
+def suggest_contraindications(features: ExerciseFeatures, db: DbSession):
+    """Podpowiada przeciwwskazania dla nowego ćwiczenia na podstawie jego cech.
+
+    Detektor hybrydowy (reguły + drzewo decyzyjne) uczy się na aktualnym atlasie
+    przy każdym zapytaniu, więc korzysta z ćwiczeń dodanych później. Pusty atlas: same reguły.
+    """
+    atlas = [ExerciseRead.model_validate(e) for e in service.list_all_exercises(db)]
+    if atlas:
+        detector = HybridDetector().fit(atlas, [e.contraindications for e in atlas])
+        name = "hybrid"
+    else:
+        detector = RuleBasedDetector()
+        name = "rules"
+    found = detector.predict([features])[0]
+    return ContraindicationSuggestion(
+        contraindications=[item for item in LIMITATIONS if item in found], detector=name
+    )
 
 
 @router.get("", response_model=list[ExerciseRead])

@@ -37,6 +37,17 @@ def fitness_to_level(fitness: np.ndarray) -> np.ndarray:
     )
 
 
+def remove_answers(X: pd.DataFrame, missing_rate: float, rng: np.random.Generator) -> pd.DataFrame:
+    """Zwraca kopię X, w której każda odpowiedź opcjonalna znika z prawdopodobieństwem missing_rate.
+
+    Symuluje użytkowników, którzy nie wykonali części testów lub pominęli pytania.
+    """
+    X = X.copy()
+    for column in OPTIONAL_FEATURES:
+        X.loc[rng.random(len(X)) < missing_rate, column] = np.nan
+    return X
+
+
 def generate_dataset(
     n_samples: int = 5000, missing_rate: float = 0.0, seed: int = 42
 ) -> tuple[pd.DataFrame, pd.Series]:
@@ -92,8 +103,7 @@ def generate_dataset(
     }, columns=FEATURES).astype(float)
 
     # Symulacja pominiętych pytań opcjonalnych
-    for column in OPTIONAL_FEATURES:
-        X.loc[rng.random(n) < missing_rate, column] = np.nan
+    X = remove_answers(X, missing_rate, rng)
 
     # 4. Etykiety z prawdziwej sprawności
     y = pd.Series(fitness_to_level(fitness), name="fitness_level")

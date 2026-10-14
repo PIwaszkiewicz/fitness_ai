@@ -13,7 +13,7 @@ Każdy krok realizowany jest na osobnej gałęzi i scalany do `main` przez pull 
   - drzewo decyzyjne
   - sieć neuronowa (`MLPClassifier`)
   - dane syntetyczne z opisanym generatorem
-- [ ] **Krok 7.** Eksperymenty
+- [x] **Krok 7.** Eksperymenty
   - porównanie algorytmów (accuracy, F1, macierz pomyłek)
   - wpływ kompletności danych na wyniki
   - śledzenie eksperymentów w MLflow

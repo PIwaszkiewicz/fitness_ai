@@ -90,8 +90,8 @@ podział 75% / 25% ze stratyfikacją, `seed = 42`.
 | Drzewo decyzyjne   | 0,820    | 0,817    |
 | Sieć neuronowa     | 0,861    | 0,857    |
 
-Szczegółowe porównanie (macierze pomyłek, wpływ kompletności danych, wiele powtórzeń)
-jest przedmiotem Kroku 7.
+Szczegółowe porównanie (macierze pomyłek, wpływ kompletności danych, wiele powtórzeń):
+[EXPERIMENTS.md](EXPERIMENTS.md).
 
 ## Użycie w API
 

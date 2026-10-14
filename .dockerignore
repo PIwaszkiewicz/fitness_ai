@@ -1,0 +1,15 @@
+# Pliki, które nie trafiają do obrazu Dockera (mniejszy obraz, brak sekretów i lokalnych danych).
+.git/
+.github/
+.venv/
+.idea/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.env
+*.db
+*.pkl
+*.joblib
+tests/
+docs/

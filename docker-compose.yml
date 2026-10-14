@@ -1,0 +1,21 @@
+# Uruchomienie całego systemu jednym poleceniem: docker compose up --build
+# Na razie jeden serwis (API). Kolejne (frontend, MLflow) dojdą w następnych krokach.
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"  # port komputera : port kontenera
+    environment:
+      CORS_ORIGINS: http://localhost:3000,http://localhost:5173
+    volumes:
+      - fitness_data:/data  # baza danych przetrwa usunięcie kontenera
+    # Docker co 30 s sprawdza endpoint /health i oznacza kontener jako zdrowy lub nie.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  fitness_data:

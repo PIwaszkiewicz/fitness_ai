@@ -5,6 +5,7 @@
 | Katalog / plik          | Rola                                                          |
 |-------------------------|---------------------------------------------------------------|
 | `app/main.py`           | Punkt wejścia: tworzy aplikację FastAPI, CORS, routery        |
+| `app/static/`           | Frontend: strona kwestionariusza i planu (HTML, CSS, JS)      |
 | `app/api/deps.py`       | Wspólne zależności endpointów (sesja bazy, stronicowanie)     |
 | `app/api/v1/endpoints/` | Endpointy HTTP wersji 1 API (prefiks `/api/v1`)               |
 | `app/core/`             | Konfiguracja aplikacji i połączenie z bazą danych             |
@@ -41,7 +42,7 @@ python -m app.seed
 # 4. Uczenie modeli klasyfikacji sprawności (zapis do app/ml/artifacts/)
 python -m app.ml.train
 
-# 5. Uruchomienie serwera (adres: http://127.0.0.1:8000, dokumentacja: /docs)
+# 5. Uruchomienie serwera (aplikacja: http://127.0.0.1:8000, dokumentacja API: /docs)
 uvicorn app.main:app --reload
 
 # 6. Testy i sprawdzenie jakości kodu
@@ -97,6 +98,19 @@ Zakresy walidacji danych profilu: wiek 16–100 lat, wzrost 120–230 cm, waga 3
 
 Tabele tworzy `create_all`, który nie modyfikuje istniejących tabel. Po zmianie modeli
 lokalną bazę trzeba odtworzyć: usunąć plik `fitness_ai.db` i ponownie uruchomić `python -m app.seed`.
+
+## Frontend
+
+Strona pod adresem `/` (`app/static/`) to zwykły HTML, CSS i JavaScript bez frameworków
+i bez etapu budowania. FastAPI serwuje ją razem z API, więc strona i API mają ten sam adres.
+
+1. Po otwarciu strona pobiera definicję pytań (`GET /api/v1/questionnaire`) i buduje z niej
+   formularz pogrupowany w sekcje. Pytania warunkowe pojawiają się zależnie od odpowiedzi.
+2. Przeglądarka sprawdza pola wymagane i zakresy (`required`, `min`, `max`) przed wysłaniem.
+   Błędy walidacji zwrócone przez API (422) są pokazywane przy nazwach pytań.
+3. Po wysłaniu (`POST /api/v1/questionnaire`) strona pokazuje ostrzeżenia, kompletność danych,
+   poziom sprawności z pewnością modelu i tygodniowy plan. Klasyfikator można zmienić z listy.
+4. Każdy tekst z API jest wstawiany do strony po zamianie znaków specjalnych HTML (ochrona przed XSS).
 
 ## Kwestionariusz
 

@@ -106,3 +106,10 @@ Gdy plik modelu nie istnieje, endpoint zwraca 503. System regułowy działa zaws
   generowania, a nie trafność na prawdziwych użytkownikach.
 - Współczynniki generatora i progi reguł są założeniami projektowymi i wymagają uzasadnienia
   w literaturze dotyczącej norm sprawności.
+
+## Wykrywanie przeciwwskazań ćwiczeń
+
+`app/ml/contraindication_detection.py` przewiduje przeciwwskazania nowego ćwiczenia na podstawie
+wzorca ruchu, grupy mięśniowej, sprzętu i trudności. Dostępne są: reguły eksperckie, drzewo
+decyzyjne uczone na atlasie i detektor hybrydowy (suma obu). Porównanie: [EXPERIMENTS.md](EXPERIMENTS.md),
+eksperyment 3.

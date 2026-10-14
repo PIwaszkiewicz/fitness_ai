@@ -21,6 +21,7 @@ VALID_EXERCISE = {
     "muscle_group": "legs",
     "equipment": "barbell",
     "difficulty": "intermediate",
+    "movement_pattern": "squat",
     "contraindications": ["knee", "lower_back"],
 }
 
@@ -87,6 +88,7 @@ def test_poprawne_cwiczenie_i_przyciecie_nazwy():
         ("muscle_group", "ogon"),
         ("equipment", "rower"),
         ("difficulty", "expert"),
+        ("movement_pattern", "taniec"),
         ("contraindications", ["nieznane"]),
     ],
 )

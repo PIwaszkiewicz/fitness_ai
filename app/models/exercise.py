@@ -16,5 +16,6 @@ class Exercise(Base):
     muscle_group: Mapped[str] = mapped_column(String(30))
     equipment: Mapped[str] = mapped_column(String(30))
     difficulty: Mapped[str] = mapped_column(String(20))
+    movement_pattern: Mapped[str] = mapped_column(String(30))
     # Ograniczenia, przy których ćwiczenie jest przeciwwskazane, np. ["knee"].
     contraindications: Mapped[list[str]] = mapped_column(JSON, default=list)

@@ -1,10 +1,13 @@
-"""Testy endpointów CRUD atlasu ćwiczeń i filtrowania listy."""
+"""Testy endpointów CRUD atlasu ćwiczeń, filtrowania listy i podpowiedzi przeciwwskazań."""
+
+from app.seed import seed_exercises
 
 EXERCISE = {
     "name": "Pompki klasyczne",
     "muscle_group": "chest",
     "equipment": "none",
     "difficulty": "beginner",
+    "movement_pattern": "horizontal_push",
     "contraindications": ["wrist"],
 }
 
@@ -60,3 +63,29 @@ def test_usuwanie_cwiczenia(client):
     exercise_id = client.post("/api/v1/exercises", json=EXERCISE).json()["id"]
     assert client.delete(f"/api/v1/exercises/{exercise_id}").status_code == 204
     assert client.get(f"/api/v1/exercises/{exercise_id}").status_code == 404
+
+
+FEATURES = {"muscle_group": "legs", "equipment": "barbell", "difficulty": "advanced", "movement_pattern": "squat"}
+
+
+def test_podpowiedz_przeciwwskazan_przy_pustym_atlasie_uzywa_regul(client):
+    response = client.post("/api/v1/exercises/suggest-contraindications", json=FEATURES)
+    assert response.status_code == 200
+    assert response.json() == {
+        "contraindications": ["knee", "lower_back", "hypertension"],
+        "detector": "rules",
+    }
+
+
+def test_podpowiedz_przeciwwskazan_z_atlasu(client, db_session):
+    seed_exercises(db_session)
+    result = client.post("/api/v1/exercises/suggest-contraindications", json=FEATURES).json()
+    assert result["detector"] == "hybrid"
+    assert "knee" in result["contraindications"]
+
+
+def test_podpowiedz_odrzuca_bledne_cechy(client):
+    response = client.post(
+        "/api/v1/exercises/suggest-contraindications", json={**FEATURES, "movement_pattern": "taniec"}
+    )
+    assert response.status_code == 422

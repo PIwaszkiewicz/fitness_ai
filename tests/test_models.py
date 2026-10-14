@@ -51,6 +51,7 @@ def test_zapis_cwiczenia_z_przeciwwskazaniami(db_session):
         muscle_group="back",
         equipment="barbell",
         difficulty="advanced",
+        movement_pattern="hinge",
         contraindications=["lower_back"],
     )
     db_session.add(Exercise(**data.model_dump()))
@@ -61,7 +62,12 @@ def test_zapis_cwiczenia_z_przeciwwskazaniami(db_session):
 
 
 def test_nazwa_cwiczenia_musi_byc_unikalna(db_session):
-    fields = {"muscle_group": "chest", "equipment": "none", "difficulty": "beginner"}
+    fields = {
+        "muscle_group": "chest",
+        "equipment": "none",
+        "difficulty": "beginner",
+        "movement_pattern": "horizontal_push",
+    }
     db_session.add(Exercise(name="Pompki", **fields))
     db_session.commit()
 

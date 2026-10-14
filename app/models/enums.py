@@ -80,6 +80,22 @@ class MuscleGroup(StrEnum):
     FULL_BODY = "full_body"
 
 
+class MovementPattern(StrEnum):
+    """Wzorzec ruchu ćwiczenia: od niego w największym stopniu zależy, które stawy są obciążane."""
+
+    SQUAT = "squat"  # przysiad
+    LUNGE = "lunge"  # wykrok, praca jednonóż
+    HINGE = "hinge"  # zawias biodrowy: martwe ciągi, mosty, swingi
+    HORIZONTAL_PUSH = "horizontal_push"  # pompki, wyciskanie na ławce
+    VERTICAL_PUSH = "vertical_push"  # wyciskanie nad głowę
+    HORIZONTAL_PULL = "horizontal_pull"  # wiosłowania
+    VERTICAL_PULL = "vertical_pull"  # podciąganie, ściąganie drążka
+    ISOLATION = "isolation"  # ćwiczenia izolowane na jeden staw
+    CORE_STABILITY = "core_stability"  # utrzymanie pozycji, np. deska
+    CORE_DYNAMIC = "core_dynamic"  # ruch tułowia, np. skręty, brzuszki
+    CARDIO = "cardio"  # dynamiczne ćwiczenia całego ciała, skoki
+
+
 class Equipment(StrEnum):
     """Sprzęt potrzebny do wykonania ćwiczenia."""
 

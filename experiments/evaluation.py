@@ -6,9 +6,21 @@ from time import perf_counter
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    f1_score,
+    precision_recall_fscore_support,
+)
 from sklearn.model_selection import train_test_split
 
+from app.ml.contraindication_detection import (
+    LIMITATIONS,
+    HybridDetector,
+    RuleBasedDetector,
+    TreeDetector,
+    labels_to_matrix,
+)
 from app.ml.data_generator import generate_dataset, remove_answers
 from app.ml.models import build_decision_tree, build_mlp
 from app.ml.rule_based import RuleBasedClassifier
@@ -107,3 +119,60 @@ def summarize(results: pd.DataFrame, group_by: list[str], metrics: list[str]) ->
     summary = results.groupby(group_by, sort=False)[metrics].agg(["mean", "std"])
     summary.columns = [f"{metric}_{stat}" for metric, stat in summary.columns]
     return summary.reset_index()
+
+
+DETECTORS = {"rules": RuleBasedDetector, "decision_tree": TreeDetector, "hybrid": HybridDetector}
+
+
+def leave_one_out_predictions(detector_class, exercises: list, labels: list) -> list[set]:
+    """Walidacja krzyżowa „leave-one-out”: każde ćwiczenie po kolei jest traktowane jak nowe.
+
+    Detektor uczy się na wszystkich pozostałych ćwiczeniach i przewiduje przeciwwskazania
+    pominiętego. Przy małym atlasie pozwala to wykorzystać do oceny każde ćwiczenie.
+    """
+    predictions = []
+    for i in range(len(exercises)):
+        train = exercises[:i] + exercises[i + 1:]
+        train_labels = labels[:i] + labels[i + 1:]
+        detector = detector_class().fit(train, train_labels)
+        predictions.append(detector.predict([exercises[i]])[0])
+    return predictions
+
+
+def contraindication_study(exercises: list) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Eksperyment 3: trafność wykrywania przeciwwskazań dla nowych ćwiczeń.
+
+    Wzorcem są ręczne etykiety z atlasu. Każda para (ćwiczenie, ograniczenie) to jedna
+    decyzja: przeciwwskazane albo nie. Zwraca podsumowanie dla detektorów
+    oraz wyniki dla każdego ograniczenia osobno.
+    """
+    labels = [exercise.contraindications for exercise in exercises]
+    true = labels_to_matrix(labels)
+    summary, per_limitation = [], []
+    for name, detector_class in DETECTORS.items():
+        predicted = labels_to_matrix(leave_one_out_predictions(detector_class, exercises, labels))
+        precision, recall, f1, _ = precision_recall_fscore_support(
+            true, predicted, average="micro", zero_division=0
+        )
+        summary.append({
+            "detector": name,
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            # Przeoczone przeciwwskazania są groźne (ryzyko kontuzji),
+            # fałszywe alarmy tylko niepotrzebnie zawężają wybór ćwiczeń.
+            "missed": int(((true == 1) & (predicted == 0)).sum()),
+            "false_alarms": int(((true == 0) & (predicted == 1)).sum()),
+            "exact_match": float((true == predicted).all(axis=1).mean()),
+        })
+        values = precision_recall_fscore_support(true, predicted, average=None, zero_division=0)
+        for limitation, (p, r, f, support) in zip(LIMITATIONS, zip(*values)):
+            per_limitation.append({
+                "detector": name,
+                "limitation": limitation.value,
+                "precision": p,
+                "recall": r,
+                "f1": f,
+                "support": int(support),  # liczba ćwiczeń z tym przeciwwskazaniem w atlasie
+            })
+    return pd.DataFrame(summary), pd.DataFrame(per_limitation)

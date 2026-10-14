@@ -32,3 +32,20 @@ jobs:
       # Testy automatyczne
       - name: Pytest
         run: pytest
+
+  # Sprawdzenie, czy obraz Dockera się buduje i serwer w kontenerze odpowiada.
+  docker:
+    runs-on: ubuntu-latest
+    needs: test  # uruchamiane dopiero po przejściu testów
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Budowa obrazu
+        run: docker build -t fitness-ai .
+
+      # Start kontenera i odpytanie /health (do 30 prób co sekundę)
+      - name: Test kontenera
+        run: |
+          docker run -d --name api -p 8000:8000 fitness-ai
+          curl --retry 30 --retry-all-errors --retry-delay 1 --fail http://localhost:8000/health
+          curl --fail http://localhost:8000/api/v1/exercises?limit=1

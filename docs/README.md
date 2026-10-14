@@ -17,6 +17,8 @@
 | `tests/`                | Testy automatyczne (pytest)                                   |
 | `docs/`                 | Dokumentacja projektu                                         |
 | `.github/workflows/`    | Ciągła integracja (GitHub Actions)                            |
+| `Dockerfile`            | Przepis na obraz kontenera z serwerem API                     |
+| `docker-compose.yml`    | Uruchomienie całego systemu jednym poleceniem                 |
 | `docs/PLAN.md`          | Plan projektu z listą kroków                                  |
 | `CONTEXT.md`            | Opis projektu, cele i zakres pracy                            |
 | `requirements.txt`      | Lista zależności Pythona                                      |
@@ -41,6 +43,25 @@ uvicorn app.main:app --reload
 pytest
 ruff check .
 ```
+
+## Uruchomienie w Dockerze
+
+Wymaga zainstalowanego i uruchomionego Docker Desktop.
+
+```bash
+# Budowa obrazu i start serwera (adres: http://localhost:8000/docs)
+docker compose up --build
+
+# Zatrzymanie (dane w bazie zostają w wolumenie fitness_data)
+docker compose down
+
+# Zatrzymanie i usunięcie danych
+docker compose down -v
+```
+
+Przy starcie kontener sam tworzy tabele i wgrywa atlas ćwiczeń. Baza SQLite leży w wolumenie
+`fitness_data` (katalog `/data` w kontenerze), więc przetrwa usunięcie i ponowne utworzenie kontenera.
+CI przy każdym pull requeście buduje obraz, uruchamia kontener i sprawdza endpoint `/health`.
 
 ## Zmienne środowiskowe
 

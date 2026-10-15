@@ -9,10 +9,14 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_health_zwraca_status_i_wersje():
+def test_health_zwraca_status_wersje_i_commit():
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "version": settings.version}
+    assert response.json() == {
+        "status": "ok",
+        "version": settings.version,
+        "commit": settings.commit,
+    }
 
 
 def test_ping_w_api_v1():

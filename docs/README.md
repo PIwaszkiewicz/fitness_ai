@@ -21,6 +21,7 @@
 | `.github/workflows/`    | Ciągła integracja (GitHub Actions)                            |
 | `Dockerfile`            | Przepis na obraz kontenera z serwerem API                     |
 | `docker-compose.yml`    | Uruchomienie całego systemu jednym poleceniem                 |
+| `render.yaml`           | Konfiguracja serwisu na platformie Render (wdrożenie)         |
 | `docs/PLAN.md`          | Plan projektu z listą kroków                                  |
 | `CONTEXT.md`            | Opis projektu, cele i zakres pracy                            |
 | `requirements.txt`      | Zależności potrzebne do działania serwera                     |
@@ -73,6 +74,27 @@ Modele ML są uczone podczas budowy obrazu. Przy starcie kontener sam tworzy tab
 `fitness_data` (katalog `/data` w kontenerze), więc przetrwa usunięcie i ponowne utworzenie kontenera.
 CI przy każdym pull requeście buduje obraz, uruchamia kontener i sprawdza endpoint `/health`.
 
+## Wdrożenie ciągłe (CD) na Render
+
+Aplikacja działa na platformie Render jako kontener Docker (`render.yaml`, plan darmowy,
+region Frankfurt). Ścieżka zmiany od kodu do serwera:
+
+```
+gałąź → pull request → CI (ruff, pytest, Docker) → merge do main
+      → CI na main → zadanie deploy → Render buduje obraz → nowa wersja online
+```
+
+- Zadanie `deploy` w `.github/workflows/ci.yml` uruchamia się wyłącznie na gałęzi `main`
+  i tylko po przejściu testów i budowy obrazu. Wywołuje wdrożenie przez *deploy hook* Render,
+  a następnie co 15 s odpytuje `/health`, aż serwer zwróci hash nowego commitu.
+- Automatyczne wdrażanie po stronie Render jest wyłączone (`autoDeploy: false`),
+  więc na serwer nie trafi kod, który nie przeszedł CI.
+- Konfiguracja w GitHub: sekret `RENDER_DEPLOY_HOOK_URL` (adres deploy hooka z panelu Render)
+  i zmienna `RENDER_APP_URL` (adres aplikacji). Bez nich zadanie `deploy` jest pomijane.
+- Ograniczenia planu darmowego: serwer usypia po 15 minutach bez ruchu (pierwsze wejście
+  po przerwie trwa ok. minuty), a dysk jest tymczasowy, więc profile znikają przy uśpieniu
+  i każdym wdrożeniu. Atlas ćwiczeń i modele ML są odtwarzane przy każdym starcie.
+
 ## Zmienne środowiskowe
 
 | Zmienna        | Domyślnie                                     | Opis                         |
@@ -81,6 +103,8 @@ CI przy każdym pull requeście buduje obraz, uruchamia kontener i sprawdza endp
 | `VERSION`      | `0.1.0`                                       | Wersja zwracana przez /health |
 | `CORS_ORIGINS` | `http://localhost:3000,http://localhost:5173` | Dozwolone adresy frontendu   |
 | `DATABASE_URL` | `sqlite:///./fitness_ai.db`                   | Adres bazy danych            |
+| `PORT`         | `8000` (w Dockerze)                           | Port serwera, ustawia go hosting |
+| `RENDER_GIT_COMMIT` | `local`                                  | Commit wdrożonej wersji, ustawia go Render |
 
 ## Baza danych
 

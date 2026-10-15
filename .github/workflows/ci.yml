@@ -1,5 +1,6 @@
-# Ciągła integracja: przy każdym pushu i pull requeście do main
-# sprawdzamy jakość kodu (ruff) i uruchamiamy testy (pytest).
+# Ciągła integracja i wdrażanie (CI/CD):
+# - przy każdym pull requeście i pushu do main: ruff, pytest, budowa i test obrazu Dockera,
+# - po pushu do main (czyli po scaleniu PR) i przejściu testów: wdrożenie na Render.
 name: CI
 
 on:
@@ -7,6 +8,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:  # ręczne uruchomienie z zakładki Actions
 
 jobs:
   test:
@@ -54,3 +56,35 @@ jobs:
           docker run -d --name api -p 8000:8000 fitness-ai
           curl --retry 30 --retry-all-errors --retry-delay 1 --fail http://localhost:8000/health
           curl --fail http://localhost:8000/api/v1/exercises?limit=1
+
+  # Wdrożenie na Render: tylko dla gałęzi main i tylko po przejściu testów i budowy obrazu.
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [test, docker]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    environment:
+      name: production
+      url: ${{ vars.RENDER_APP_URL }}
+    steps:
+      # Adres wywołujący wdrożenie (deploy hook) jest sekretem: kto go zna, może wdrażać.
+      - name: Wdrożenie i oczekiwanie na nową wersję
+        env:
+          DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          APP_URL: ${{ vars.RENDER_APP_URL }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ] || [ -z "$APP_URL" ]; then
+            echo "::warning::Brak konfiguracji Render (sekret RENDER_DEPLOY_HOOK_URL lub zmienna RENDER_APP_URL), pomijam wdrożenie."
+            exit 0
+          fi
+          curl --fail --silent --show-error -X POST "$DEPLOY_HOOK" > /dev/null
+          echo "Wdrożenie uruchomione, czekam na wersję $GITHUB_SHA"
+          # Darmowy serwer buduje obraz kilka minut: sprawdzamy /health co 15 s, maksymalnie 20 minut.
+          for attempt in $(seq 1 80); do
+            if curl --silent "$APP_URL/health" | grep -q "$GITHUB_SHA"; then
+              echo "Serwer działa na nowej wersji: $APP_URL"
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "::error::Nowa wersja nie pojawiła się w ciągu 20 minut."
+          exit 1

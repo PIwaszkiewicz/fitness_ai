@@ -66,4 +66,4 @@ def index() -> FileResponse:
 @app.get("/health")
 def health() -> dict[str, str]:
     """Sprawdzenie stanu serwera, np. dla monitoringu lub platformy hostingowej."""
-    return {"status": "ok", "version": settings.version}
+    return {"status": "ok", "version": settings.version, "commit": settings.commit}

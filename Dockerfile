@@ -31,4 +31,5 @@ EXPOSE 8000
 
 # Przy starcie: wgranie atlasu ćwiczeń (pomija istniejące), potem serwer.
 # Host 0.0.0.0 sprawia, że serwer jest dostępny spoza kontenera.
-CMD ["sh", "-c", "python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# Port pochodzi ze zmiennej PORT (ustawia ją platforma hostingowa, np. Render), domyślnie 8000.
+CMD ["sh", "-c", "python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

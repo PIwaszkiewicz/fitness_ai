@@ -21,4 +21,4 @@ Każdy krok realizowany jest na osobnej gałęzi i scalany do `main` przez pull 
   - filtrowanie ćwiczeń po przeciwwskazaniach
   - pomiar precyzji i recall wykrywania przeciwwskazań
 - [x] **Krok 9.** Frontend kwestionariusza i widok planu
-- [ ] **Krok 10.** (opcjonalnie) CD: wdrożenie na Render
+- [x] **Krok 10.** (opcjonalnie) CD: wdrożenie na Render

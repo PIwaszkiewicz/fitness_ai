@@ -13,6 +13,9 @@ class Settings:
     def __init__(self) -> None:
         self.project_name: str = os.getenv("PROJECT_NAME", "Fitness AI")
         self.version: str = os.getenv("VERSION", "0.1.0")
+        # Commit, z którego zbudowano działającą wersję. Render ustawia tę zmienną sam,
+        # co pozwala sprawdzić po wdrożeniu, czy serwer działa już na nowym kodzie.
+        self.commit: str = os.getenv("RENDER_GIT_COMMIT", "local")
         self.api_v1_prefix: str = "/api/v1"
         # Adres bazy danych. Domyślnie lokalny plik SQLite w katalogu projektu.
         self.database_url: str = os.getenv("DATABASE_URL", "sqlite:///./fitness_ai.db")

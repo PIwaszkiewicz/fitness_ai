@@ -1,0 +1,12 @@
+# Konfiguracja serwisu na platformie Render (Infrastructure as Code).
+# Render buduje obraz z Dockerfile i uruchamia go jako serwis WWW.
+services:
+  - type: web
+    name: fitness-ai
+    runtime: docker
+    plan: free
+    region: frankfurt  # serwerownia najbliżej Polski
+    healthCheckPath: /health  # Render uznaje wdrożenie za udane, gdy /health odpowiada
+    # Wdrożenia uruchamia GitHub Actions dopiero po przejściu testów (zadanie deploy w ci.yml),
+    # dlatego automatyczne wdrażanie każdego commita po stronie Render jest wyłączone.
+    autoDeploy: false

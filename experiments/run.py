@@ -20,6 +20,7 @@ from experiments.evaluation import (
     summarize,
 )
 from experiments.plan_quality import plan_quality_study
+from experiments.tuning import tune_hyperparameters
 
 SEEDS = [1, 2, 3, 4, 5]
 N_SAMPLES = 5000
@@ -191,6 +192,11 @@ def run_experiments(output_dir: Path, seeds: list[int], n_samples: int) -> None:
     with mlflow.start_run(run_name="wykres-jakosci-planu"):
         mlflow.log_artifact(str(output_dir / "plan_quality.png"))
 
+    # Dobór hiperparametrów (walidacja krzyżowa na danych uczących)
+    tuning = tune_hyperparameters(n_samples)
+    tuning.round(4).to_csv(output_dir / "tuning.csv", index=False)
+    log_runs("dobor-hiperparametrow", tuning, ["classifier", "params"], ["f1_macro_mean", "f1_macro_std"])
+
     print(comparison_summary.round(3).to_string(index=False))
     print()
     print(completeness_summary.round(3).to_string(index=False))
@@ -200,6 +206,8 @@ def run_experiments(output_dir: Path, seeds: list[int], n_samples: int) -> None:
     print(per_limitation.round(2).to_string(index=False))
     print()
     print(plan_quality_summary.round(3).to_string(index=False))
+    print()
+    print(tuning.round(3).to_string(index=False))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,37 @@
+classifier,params,f1_macro_mean,f1_macro_std,rank,is_current,within_one_se
+decision_tree,"max_depth=10, min_samples_leaf=5",0.8162,0.0091,1,False,True
+decision_tree,"max_depth=8, min_samples_leaf=5",0.8137,0.0126,2,False,True
+decision_tree,"max_depth=None, min_samples_leaf=5",0.8105,0.0127,3,False,True
+decision_tree,"max_depth=10, min_samples_leaf=1",0.8099,0.0084,4,False,True
+decision_tree,"max_depth=6, min_samples_leaf=5",0.8086,0.0076,5,True,True
+decision_tree,"max_depth=6, min_samples_leaf=1",0.8073,0.0062,6,False,True
+decision_tree,"max_depth=8, min_samples_leaf=1",0.8068,0.0121,7,False,False
+decision_tree,"max_depth=None, min_samples_leaf=20",0.8032,0.006,8,False,False
+decision_tree,"max_depth=10, min_samples_leaf=20",0.8022,0.0059,9,False,False
+decision_tree,"max_depth=8, min_samples_leaf=20",0.8017,0.0098,10,False,False
+decision_tree,"max_depth=6, min_samples_leaf=20",0.7991,0.0091,11,False,False
+decision_tree,"max_depth=4, min_samples_leaf=5",0.7949,0.0179,12,False,False
+decision_tree,"max_depth=4, min_samples_leaf=1",0.7944,0.0181,13,False,False
+decision_tree,"max_depth=6, min_samples_leaf=50",0.7919,0.0192,14,False,False
+decision_tree,"max_depth=4, min_samples_leaf=20",0.7909,0.017,15,False,False
+decision_tree,"max_depth=8, min_samples_leaf=50",0.7909,0.0189,16,False,False
+decision_tree,"max_depth=10, min_samples_leaf=50",0.7899,0.0189,17,False,False
+decision_tree,"max_depth=None, min_samples_leaf=50",0.7899,0.0189,17,False,False
+decision_tree,"max_depth=None, min_samples_leaf=1",0.7897,0.0117,19,False,False
+decision_tree,"max_depth=4, min_samples_leaf=50",0.7771,0.0171,20,False,False
+decision_tree,"max_depth=3, min_samples_leaf=1",0.7767,0.0099,21,False,False
+decision_tree,"max_depth=3, min_samples_leaf=5",0.7767,0.0099,21,False,False
+decision_tree,"max_depth=3, min_samples_leaf=20",0.7767,0.0099,21,False,False
+decision_tree,"max_depth=3, min_samples_leaf=50",0.7699,0.0112,24,False,False
+mlp,"alpha=0.0001, hidden_layer_sizes=(32, 16)",0.8601,0.0081,1,True,True
+mlp,"alpha=0.001, hidden_layer_sizes=(32, 16)",0.8582,0.0059,2,False,True
+mlp,"alpha=0.01, hidden_layer_sizes=(32, 16)",0.8571,0.0072,3,False,True
+mlp,"alpha=0.01, hidden_layer_sizes=(64, 32)",0.8546,0.0207,4,False,True
+mlp,"alpha=0.001, hidden_layer_sizes=(16,)",0.8511,0.0155,5,False,False
+mlp,"alpha=0.0001, hidden_layer_sizes=(16,)",0.8509,0.0148,6,False,False
+mlp,"alpha=0.01, hidden_layer_sizes=(32,)",0.8506,0.02,7,False,False
+mlp,"alpha=0.0001, hidden_layer_sizes=(32,)",0.8489,0.0206,8,False,False
+mlp,"alpha=0.001, hidden_layer_sizes=(32,)",0.8489,0.0206,8,False,False
+mlp,"alpha=0.01, hidden_layer_sizes=(16,)",0.8476,0.0134,10,False,False
+mlp,"alpha=0.0001, hidden_layer_sizes=(64, 32)",0.8452,0.0192,11,False,False
+mlp,"alpha=0.001, hidden_layer_sizes=(64, 32)",0.8452,0.0192,11,False,False

@@ -16,6 +16,7 @@ from experiments.evaluation import (
 )
 from experiments.plan_quality import jaccard, plan_quality_study, random_preferences
 from experiments.run import run_experiments
+from experiments.tuning import SEARCH_SPACES, tune_hyperparameters
 
 
 def test_usuwanie_odpowiedzi():
@@ -66,6 +67,7 @@ def test_uruchomienie_eksperymentow(tmp_path, monkeypatch):
         "contraindications.png",
         "plan_quality.csv",
         "plan_quality.png",
+        "tuning.csv",
     }
     assert {path.name for path in output.iterdir()} == expected
 
@@ -103,3 +105,17 @@ def test_jakosc_planu():
     total = results["level_match"] + results["too_hard"] + results["too_easy"]
     assert np.allclose(total, 1.0)
     assert results["exercise_overlap"].between(0, 1).all()
+
+
+def test_dobor_hiperparametrow():
+    results = tune_hyperparameters(n_samples=600)
+    for name, (_, grid) in SEARCH_SPACES.items():
+        rows = results[results["classifier"] == name]
+        combinations = 1
+        for values in grid.values():
+            combinations *= len(values)
+        assert len(rows) == combinations
+        # Dokładnie jedna kombinacja odpowiada parametrom używanym w aplikacji.
+        assert rows["is_current"].sum() == 1
+        # Najlepszy wynik (rank 1) zawsze mieści się w granicy jednego odchylenia.
+        assert rows.iloc[0]["rank"] == 1 and rows.iloc[0]["within_one_se"]

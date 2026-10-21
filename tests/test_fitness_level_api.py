@@ -1,11 +1,8 @@
 """Testy endpointu klasyfikacji sprawności profilu."""
 
-import joblib
 import pytest
 
 from app.ml import predictor
-from app.ml.data_generator import generate_dataset
-from app.ml.models import build_decision_tree, build_mlp
 
 PROFILE = {
     "age": 28,
@@ -20,18 +17,6 @@ PROFILE = {
     "plank_seconds": 200,
     "resting_heart_rate": 55,
 }
-
-
-@pytest.fixture
-def trained_models(tmp_path, monkeypatch):
-    """Uczy małe modele w katalogu tymczasowym i podmienia katalog modeli w predyktorze."""
-    X, y = generate_dataset(800, missing_rate=0.2)
-    joblib.dump(build_decision_tree().fit(X, y), tmp_path / "decision_tree.joblib")
-    joblib.dump(build_mlp().fit(X, y), tmp_path / "mlp.joblib")
-    monkeypatch.setattr(predictor, "ARTIFACTS_DIR", tmp_path)
-    predictor.load_classifier.cache_clear()
-    yield
-    predictor.load_classifier.cache_clear()
 
 
 @pytest.fixture

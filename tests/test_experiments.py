@@ -6,7 +6,8 @@ import pytest
 
 from app.ml.data_generator import generate_dataset, remove_answers
 from app.ml.features import OPTIONAL_FEATURES
-from app.seed import load_atlas
+from app.seed import load_atlas, seed_exercises
+from experiments.api_latency import endpoints, measure_api_latency
 from experiments.evaluation import (
     TEST_MISSING_RATES,
     compare_classifiers,
@@ -145,3 +146,12 @@ def test_istotnosc_roznic():
     # 3 pary klasyfikatorów dla każdego odsetka braków.
     assert len(results) == 3 * len(TEST_MISSING_RATES)
     assert results["p_value"].between(0, 1).all()
+
+
+def test_pomiar_czasu_odpowiedzi_api(client, db_session, trained_models):
+    seed_exercises(db_session)
+    results = measure_api_latency(client, n_requests=3)
+    assert list(results["endpoint"]) == [name for name, *_ in endpoints(1)]
+    assert (results["p50_ms"] > 0).all()
+    assert (results["p50_ms"] <= results["p95_ms"]).all()
+    assert (results["p95_ms"] <= results["max_ms"]).all()

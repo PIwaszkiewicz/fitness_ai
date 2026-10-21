@@ -24,6 +24,7 @@ Odtworzenie wyników:
 ```bash
 pip install -r requirements-dev.txt
 python -m experiments.run      # ok. 1 min, wyniki w docs/experiments/
+python -m experiments.api_latency   # czas odpowiedzi API (wymaga python -m app.ml.train)
 mlflow ui                      # przeglądanie przebiegów: http://127.0.0.1:5000
 ```
 
@@ -277,6 +278,61 @@ We wszystkich przebiegach liczba ćwiczeń przeciwwskazanych wyniosła **0**.
 bardzo niekompletnych system regułowy, który myli się „w bezpieczną stronę”. Uzasadnia to
 domyślny wybór sieci neuronowej i informowanie użytkownika o niskiej kompletności danych.
 
+## Czas odpowiedzi API
+
+**Pytanie:** czy system odpowiada wystarczająco szybko? Eksperyment 1 mierzy sam klasyfikator,
+tutaj mierzony jest cały czas obsługi żądania HTTP: walidacja Pydantic, zapytania do bazy,
+klasyfikacja, generowanie planu i zamiana wyniku na JSON.
+
+**Metodyka** (`experiments/api_latency.py`):
+- Kompletny profil (wszystkie testy sprawności, ograniczenie kolana, 4 dni treningowe, sprzęt),
+  atlas 67 ćwiczeń w bazie SQLite.
+- Dla każdego endpointu 5 żądań rozgrzewkowych (wczytanie modeli z dysku, połączenie), które nie
+  są liczone, a potem właściwy pomiar.
+- Miary: średnia, mediana (p50), 95. percentyl (p95: 95% żądań było szybszych) i maksimum.
+- Dwa warianty:
+  - **lokalnie:** aplikacja w tym samym procesie, bez sieci (200 żądań na endpoint),
+    czyli czas pracy samego serwera,
+  - **wdrożenie:** aplikacja na Render (plan darmowy, Frankfurt), żądania z komputera w Polsce
+    (30 żądań na endpoint, pomiar z 21.10.2026), czyli czas widziany przez użytkownika.
+
+Wyniki lokalne (`docs/experiments/api_latency.csv`), w milisekundach:
+
+| Żądanie                                   | Średnia | p50  | p95  | Maks. |
+|-------------------------------------------|---------|------|------|-------|
+| `GET /health`                             | 0,79    | 0,76 | 0,92 | 1,45  |
+| `GET /api/v1/questionnaire`               | 0,83    | 0,80 | 1,00 | 1,24  |
+| `POST /api/v1/questionnaire`              | 1,86    | 1,72 | 2,30 | 8,82  |
+| `GET .../fitness-level?method=rules`      | 1,74    | 1,68 | 1,96 | 3,17  |
+| `GET .../fitness-level?method=decision_tree` | 2,83 | 2,68 | 3,79 | 5,42  |
+| `GET .../fitness-level?method=mlp`        | 3,24    | 2,94 | 4,56 | 7,98  |
+| `GET .../plan?method=mlp`                 | 4,29    | 4,08 | 5,33 | 6,41  |
+
+Wyniki dla wdrożenia, w milisekundach:
+
+| Żądanie                                   | Średnia | p50  | p95   | Maks. |
+|-------------------------------------------|---------|------|-------|-------|
+| `GET /health`                             | 60      | 53   | 124   | 137   |
+| `POST /api/v1/questionnaire`              | 68      | 59   | 134   | 150   |
+| `GET .../fitness-level?method=rules`      | 63      | 55   | 122   | 141   |
+| `GET .../fitness-level?method=mlp`        | 96      | 65   | 182   | 431   |
+| `GET .../plan?method=mlp`                 | 100     | 96   | 171   | 228   |
+
+**Obserwacje:**
+
+1. Najcięższe żądanie, wygenerowanie planu z klasyfikacją siecią neuronową, zajmuje serwerowi
+   ok. 4 ms (p95 ok. 5 ms). Klasyfikacja sieci to ok. 0,5 ms (eksperyment 1), a resztę zajmują
+   baza danych, generowanie planu i obsługa HTTP.
+2. Po wdrożeniu czas odpowiedzi to ok. 50–100 ms (mediana), z czego większość to sieć i serwer
+   z planu darmowego (pusty `GET /health` trwa ok. 53 ms). Wszystkie żądania mieszczą się poniżej
+   0,5 s, a 95% poniżej 0,2 s, czyli poniżej progu, który użytkownik odbiera jako natychmiastową
+   reakcję interfejsu (ok. 0,1–1 s).
+3. Wybór klasyfikatora praktycznie nie wpływa na czas odpowiedzi: różnica między regułami a siecią
+   to ok. 1,5 ms lokalnie i mieści się w zmienności sieci po wdrożeniu.
+4. Wyjątkiem jest pierwsze żądanie po uśpieniu serwera w planie darmowym (start kontenera,
+   ok. 1 minuty). To ograniczenie planu hostingu, a nie aplikacji: w planie płatnym serwer
+   nie jest usypiany.
+
 ## Ograniczenia
 
 - Etykiety przeciwwskazań w atlasie i reguły eksperckie pochodzą od autora systemu,
@@ -287,4 +343,6 @@ domyślny wybór sieci neuronowej i informowanie użytkownika o niskiej kompletn
   pomijać konkretne testy (np. osoby słabsze – pompki), co może zmienić wyniki.
 - W eksperymencie 4 preferencje osób są losowane niezależnie od ich sprawności, a jakość planu
   oceniana jest względem planu wzorcowego z tego samego generatora, a nie przez trenera.
-- Czasy zmierzono na jednym komputerze deweloperskim i służą wyłącznie do porównania metod.
+- Czasy lokalne zmierzono na jednym komputerze deweloperskim i służą do porównania metod.
+  Pomiar wdrożenia zależy od łącza i obciążenia serwera w chwili pomiaru, a żądania były
+  wysyłane kolejno (bez równoczesnych użytkowników), więc nie jest to test obciążeniowy.

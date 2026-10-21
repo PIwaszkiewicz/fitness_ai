@@ -16,13 +16,13 @@ Kod: `experiments/evaluation.py` (eksperymenty), `experiments/run.py` (zapis wyn
   - **macierz pomyłek:** jaka część osób z danego poziomu trafiła do każdej klasy,
   - **czas uczenia** i **czas klasyfikacji jednej osoby** (odpowiada jednemu żądaniu API).
 - Wszystkie przebiegi są zapisywane w MLflow (eksperymenty `porownanie-klasyfikatorow`,
-  `wplyw-kompletnosci` i `wykrywanie-przeciwwskazan`).
+  `wplyw-kompletnosci`, `wykrywanie-przeciwwskazan` i `jakosc-planu`).
 
 Odtworzenie wyników:
 
 ```bash
 pip install -r requirements-dev.txt
-python -m experiments.run      # ok. 30 s, wyniki w docs/experiments/
+python -m experiments.run      # ok. 1 min, wyniki w docs/experiments/
 mlflow ui                      # przeglądanie przebiegów: http://127.0.0.1:5000
 ```
 
@@ -132,6 +132,64 @@ przy dodawaniu ćwiczenia (`POST /api/v1/exercises/suggest-contraindications`). 
 korzysta zawsze z przeciwwskazań zatwierdzonych przez człowieka, więc filtr bezpieczeństwa
 w planie nie przepuszcza żadnego ćwiczenia przeciwwskazanego według atlasu.
 
+## Eksperyment 4: jakość planu a kompletność danych
+
+**Pytanie:** jak błędy klasyfikacji przy brakach danych przekładają się na plan treningowy?
+
+**Metodyka** (`experiments/plan_quality.py`):
+- Osoby testowe i braki danych jak w eksperymencie 2. Każda osoba dostaje losowe preferencje:
+  cel, 2–5 dni treningowych, 30–90 minut, dostępny sprzęt (każdy rodzaj z prawdopodobieństwem 50%)
+  i u połowy osób jedno lub dwa ograniczenia zdrowotne.
+- Dla każdej osoby generator buduje **plan wzorcowy** (dla prawdziwego poziomu) i plan dla poziomu
+  przewidzianego przez klasyfikator. Atlas: 67 ćwiczeń z `app/data/exercises.json`.
+- Metryki:
+  - **plan dla prawdziwego poziomu:** część osób, których plan jest identyczny z wzorcowym,
+  - **plan za trudny / za łatwy:** plan zbudowany dla wyższego / niższego poziomu,
+  - **ćwiczenie trudniejsze niż poziom:** część osób, w których planie jest co najmniej jedno
+    ćwiczenie o trudności wyższej niż ich prawdziwy poziom (miara ryzyka przeciążenia),
+  - **podobieństwo ćwiczeń:** średni indeks Jaccarda zbiorów ćwiczeń obu planów
+    (część wspólna / suma, 1 oznacza identyczny dobór ćwiczeń),
+  - **ćwiczenia przeciwwskazane:** liczba ćwiczeń w planach sprzecznych z ograniczeniami osoby.
+
+Wyniki: średnia z 5 ziaren (`docs/experiments/plan_quality.csv`).
+
+| Pominięte odpowiedzi | Klasyfikator     | Plan dla prawdziwego poziomu | Za trudny | Za łatwy | Ćwiczenie trudniejsze niż poziom | Podobieństwo ćwiczeń |
+|----------------------|------------------|------------------------------|-----------|----------|----------------------------------|----------------------|
+| 0%                   | System regułowy  | 0,806                        | 0,149     | 0,045    | 0,127                            | 0,935                |
+| 0%                   | Drzewo decyzyjne | 0,828                        | 0,084     | 0,088    | 0,070                            | 0,944                |
+| 0%                   | Sieć neuronowa   | 0,879                        | 0,061     | 0,060    | 0,051                            | 0,961                |
+| 60%                  | System regułowy  | 0,732                        | 0,125     | 0,143    | 0,104                            | 0,909                |
+| 60%                  | Drzewo decyzyjne | 0,701                        | 0,169     | 0,130    | 0,151                            | 0,900                |
+| 60%                  | Sieć neuronowa   | 0,798                        | 0,093     | 0,109    | 0,079                            | 0,933                |
+| 100%                 | System regułowy  | 0,675                        | 0,068     | 0,257    | 0,055                            | 0,886                |
+| 100%                 | Drzewo decyzyjne | 0,484                        | 0,315     | 0,200    | 0,292                            | 0,820                |
+| 100%                 | Sieć neuronowa   | 0,648                        | 0,180     | 0,172    | 0,161                            | 0,882                |
+
+We wszystkich przebiegach liczba ćwiczeń przeciwwskazanych wyniosła **0**.
+
+![Jakość planu a kompletność danych](experiments/plan_quality.png)
+
+**Obserwacje:**
+
+1. **Bezpieczeństwo nie zależy od kompletności danych.** Ograniczenia zdrowotne są pytaniem
+   obowiązkowym, a filtr przeciwwskazań działa niezależnie od klasyfikatora, więc żaden plan nie
+   zawierał ćwiczenia przeciwwskazanego, nawet przy błędnie wyznaczonym poziomie.
+2. **Błędny poziom zmienia plan w niewielkim stopniu.** Nawet przy samych danych podstawowych
+   plany mają 82–89% wspólnych ćwiczeń z planem wzorcowym. Ćwiczenia dla poziomu niższego są
+   dostępne także na wyższych poziomach, więc pomyłka o jeden poziom zmienia tylko część ćwiczeń
+   (i liczbę serii u początkujących).
+3. **Kierunek błędu zależy od metody.** System regułowy przy brakach danych częściej zaniża poziom
+   (przy 100% braków 26% planów za łatwych i tylko 6% z ćwiczeniem za trudnym). Drzewo decyzyjne
+   myli się w obie strony, a przy 100% braków aż 29% osób dostaje ćwiczenie trudniejsze niż ich
+   poziom. Z punktu widzenia bezpieczeństwa plan za łatwy jest lepszy niż za trudny.
+4. Przy pełnych danych system regułowy częściej zawyża poziom (15% planów za trudnych) niż modele
+   ML (6–8%). Progi reguł są więc dla tej populacji zbyt łagodne, co wskazuje kierunek ich korekty.
+5. Do ok. 60% braków sieć neuronowa daje plany najbliższe wzorcowym i najrzadziej za trudne.
+
+**Wniosek projektowy:** przy kompletnych danych najlepsze plany daje sieć neuronowa, a przy
+bardzo niekompletnych system regułowy, który myli się „w bezpieczną stronę”. Uzasadnia to
+domyślny wybór sieci neuronowej i informowanie użytkownika o niskiej kompletności danych.
+
 ## Ograniczenia
 
 - Etykiety przeciwwskazań w atlasie i reguły eksperckie pochodzą od autora systemu,
@@ -140,4 +198,6 @@ w planie nie przepuszcza żadnego ćwiczenia przeciwwskazanego według atlasu.
   modelu generowania, a nie trafność na prawdziwych użytkownikach.
 - Braki danych są losowe i niezależne od siebie. W rzeczywistości użytkownicy mogą częściej
   pomijać konkretne testy (np. osoby słabsze – pompki), co może zmienić wyniki.
+- W eksperymencie 4 preferencje osób są losowane niezależnie od ich sprawności, a jakość planu
+  oceniana jest względem planu wzorcowego z tego samego generatora, a nie przez trenera.
 - Czasy zmierzono na jednym komputerze deweloperskim i służą wyłącznie do porównania metod.

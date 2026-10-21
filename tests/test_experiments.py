@@ -16,6 +16,7 @@ from experiments.evaluation import (
 )
 from experiments.plan_quality import jaccard, plan_quality_study, random_preferences
 from experiments.run import run_experiments
+from experiments.significance import mcnemar_test, significance_study
 from experiments.tuning import SEARCH_SPACES, tune_hyperparameters
 
 
@@ -68,6 +69,7 @@ def test_uruchomienie_eksperymentow(tmp_path, monkeypatch):
         "plan_quality.csv",
         "plan_quality.png",
         "tuning.csv",
+        "significance.csv",
     }
     assert {path.name for path in output.iterdir()} == expected
 
@@ -119,3 +121,27 @@ def test_dobor_hiperparametrow():
         assert rows["is_current"].sum() == 1
         # Najlepszy wynik (rank 1) zawsze mieści się w granicy jednego odchylenia.
         assert rows.iloc[0]["rank"] == 1 and rows.iloc[0]["within_one_se"]
+
+
+def test_mcnemar_liczy_rozbiezne_odpowiedzi():
+    y = ["a", "a", "a", "a"]
+    result = mcnemar_test(y, ["a", "a", "b", "b"], ["a", "b", "b", "a"])
+    # Osoba 2: dobrze tylko A, osoba 4: dobrze tylko B, osoby 1 i 3 bez różnicy.
+    assert result["only_a_correct"] == 1
+    assert result["only_b_correct"] == 1
+    assert result["p_value"] == pytest.approx(1.0)
+
+
+def test_mcnemar_wykrywa_wyrazna_przewage():
+    y = ["a"] * 30
+    better = ["a"] * 30
+    worse = ["b"] * 20 + ["a"] * 10
+    assert mcnemar_test(y, better, worse)["p_value"] < 0.001
+    assert mcnemar_test(y, better, better)["p_value"] == 1.0
+
+
+def test_istotnosc_roznic():
+    results = significance_study(seeds=[1], n_samples=600)
+    # 3 pary klasyfikatorów dla każdego odsetka braków.
+    assert len(results) == 3 * len(TEST_MISSING_RATES)
+    assert results["p_value"].between(0, 1).all()

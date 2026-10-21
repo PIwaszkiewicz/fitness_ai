@@ -8,6 +8,7 @@ httpx==0.28.1
 # Jakość kodu
 ruff==0.16.10
 
-# Eksperymenty: śledzenie wyników i wykresy
+# Eksperymenty: śledzenie wyników, wykresy i testy statystyczne
 mlflow==3.17.1
 matplotlib==3.11.2
+scipy==1.18.1

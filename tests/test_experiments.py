@@ -14,6 +14,7 @@ from experiments.evaluation import (
     contraindication_study,
     summarize,
 )
+from experiments.plan_quality import jaccard, plan_quality_study, random_preferences
 from experiments.run import run_experiments
 
 
@@ -63,6 +64,8 @@ def test_uruchomienie_eksperymentow(tmp_path, monkeypatch):
         "contraindications.csv",
         "contraindications_per_limitation.csv",
         "contraindications.png",
+        "plan_quality.csv",
+        "plan_quality.png",
     }
     assert {path.name for path in output.iterdir()} == expected
 
@@ -75,3 +78,28 @@ def test_wykrywanie_przeciwwskazan():
     # Hybryda to suma wyników, więc nie może przeoczyć więcej niż reguły czy drzewo.
     missed = summary.set_index("detector")["missed"]
     assert missed["hybrid"] <= min(missed["rules"], missed["decision_tree"])
+
+
+def test_podobienstwo_jaccarda():
+    assert jaccard({1, 2}, {1, 2}) == 1.0
+    assert jaccard({1, 2}, {3}) == 0.0
+    assert jaccard({1, 2, 3}, {2, 3, 4}) == pytest.approx(0.5)
+
+
+def test_losowe_preferencje_zawsze_maja_cwiczenia_bez_sprzetu():
+    rng = np.random.default_rng(0)
+    for _ in range(20):
+        preferences = random_preferences(rng)
+        assert "none" in preferences["available_equipment"]
+        assert 2 <= preferences["training_days_per_week"] <= 5
+
+
+def test_jakosc_planu():
+    results = plan_quality_study(seeds=[1], n_samples=800, atlas=load_atlas())
+    assert len(results) == 3 * len(TEST_MISSING_RATES)
+    # Filtr bezpieczeństwa działa niezależnie od trafności klasyfikacji.
+    assert (results["unsafe_exercises"] == 0).all()
+    # Każda osoba dostaje plan dla swojego poziomu, za trudny albo za łatwy.
+    total = results["level_match"] + results["too_hard"] + results["too_easy"]
+    assert np.allclose(total, 1.0)
+    assert results["exercise_overlap"].between(0, 1).all()

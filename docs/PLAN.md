@@ -22,3 +22,10 @@ Każdy krok realizowany jest na osobnej gałęzi i scalany do `main` przez pull 
   - pomiar precyzji i recall wykrywania przeciwwskazań
 - [x] **Krok 9.** Frontend kwestionariusza i widok planu
 - [x] **Krok 10.** (opcjonalnie) CD: wdrożenie na Render
+
+## Rozszerzenia części badawczej
+
+- [x] Eksperyment 4: jakość planu treningowego w zależności od kompletności danych
+- [ ] Dobór hiperparametrów modeli ML walidacją krzyżową
+- [ ] Test istotności statystycznej różnic między klasyfikatorami
+- [ ] Pomiar czasu odpowiedzi API

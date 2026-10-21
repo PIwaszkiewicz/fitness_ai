@@ -19,6 +19,7 @@ from experiments.evaluation import (
     contraindication_study,
     summarize,
 )
+from experiments.plan_quality import plan_quality_study
 
 SEEDS = [1, 2, 3, 4, 5]
 N_SAMPLES = 5000
@@ -105,6 +106,33 @@ def plot_contraindications(per_limitation: pd.DataFrame, path: Path) -> None:
     figure.savefig(path, dpi=120)
 
 
+def plot_plan_quality(summary: pd.DataFrame, path: Path) -> None:
+    """Rysuje zgodność planu z planem wzorcowym i odsetek planów z za trudnymi ćwiczeniami."""
+    figure = Figure(figsize=(12, 4.5))
+    axes = figure.subplots(1, 2)
+    panels = [
+        ("level_match", "Plan dla prawdziwego poziomu"),
+        ("harder_exercises", "Plan z ćwiczeniem trudniejszym niż poziom"),
+    ]
+    for ax, (metric, title) in zip(axes, panels):
+        for name, group in summary.groupby("classifier", sort=False):
+            ax.errorbar(
+                group["test_missing_rate"] * 100,
+                group[f"{metric}_mean"],
+                yerr=group[f"{metric}_std"],
+                marker="o",
+                capsize=3,
+                label=CLASSIFIER_NAMES[name],
+            )
+        ax.set_title(title)
+        ax.set_xlabel("Pominięte odpowiedzi opcjonalne [%]")
+        ax.set_ylabel("Część osób")
+        ax.grid(alpha=0.3)
+    axes[0].legend()
+    figure.tight_layout()
+    figure.savefig(path, dpi=120)
+
+
 def log_runs(experiment: str, results: pd.DataFrame, params: list[str], metrics: list[str]) -> None:
     """Zapisuje każdy wiersz wyników jako osobny przebieg (run) w MLflow."""
     mlflow.set_experiment(experiment)
@@ -116,7 +144,7 @@ def log_runs(experiment: str, results: pd.DataFrame, params: list[str], metrics:
 
 
 def run_experiments(output_dir: Path, seeds: list[int], n_samples: int) -> None:
-    """Wykonuje oba eksperymenty, zapisuje tabele, wykresy i przebiegi w MLflow."""
+    """Wykonuje wszystkie eksperymenty, zapisuje tabele, wykresy i przebiegi w MLflow."""
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Eksperyment 1: porównanie klasyfikatorów
@@ -153,6 +181,16 @@ def run_experiments(output_dir: Path, seeds: list[int], n_samples: int) -> None:
     with mlflow.start_run(run_name="wykres-przeciwwskazan"):
         mlflow.log_artifact(str(output_dir / "contraindications.png"))
 
+    # Eksperyment 4: jakość planu w zależności od kompletności danych
+    metrics = ["level_match", "too_hard", "too_easy", "harder_exercises", "exercise_overlap", "unsafe_exercises"]
+    plan_quality = plan_quality_study(seeds, n_samples, load_atlas())
+    plan_quality_summary = summarize(plan_quality, ["classifier", "test_missing_rate"], metrics)
+    plan_quality_summary.round(4).to_csv(output_dir / "plan_quality.csv", index=False)
+    plot_plan_quality(plan_quality_summary, output_dir / "plan_quality.png")
+    log_runs("jakosc-planu", plan_quality, ["classifier", "seed", "test_missing_rate"], metrics)
+    with mlflow.start_run(run_name="wykres-jakosci-planu"):
+        mlflow.log_artifact(str(output_dir / "plan_quality.png"))
+
     print(comparison_summary.round(3).to_string(index=False))
     print()
     print(completeness_summary.round(3).to_string(index=False))
@@ -160,6 +198,8 @@ def run_experiments(output_dir: Path, seeds: list[int], n_samples: int) -> None:
     print(detection_summary.round(3).to_string(index=False))
     print()
     print(per_limitation.round(2).to_string(index=False))
+    print()
+    print(plan_quality_summary.round(3).to_string(index=False))
 
 
 if __name__ == "__main__":

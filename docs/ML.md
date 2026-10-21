@@ -75,9 +75,12 @@ więc system regułowy nie ma z góry zagwarantowanej trafności.
 `app/ml/models.py`. Oba modele to potoki scikit-learn, które zaczynają od uzupełnienia braków
 medianą z dodaniem kolumn 0/1 oznaczających brak (`SimpleImputer(add_indicator=True)`).
 
-- **Drzewo decyzyjne:** głębokość maks. 6, min. 20 próbek w liściu (ograniczenie przeuczenia).
+- **Drzewo decyzyjne:** głębokość maks. 6, min. 5 próbek w liściu (ograniczenie przeuczenia).
 - **Sieć neuronowa (MLP):** standaryzacja cech, warstwy ukryte 32 i 16 neuronów,
   wczesne zatrzymanie uczenia (`early_stopping`).
+
+Ustawienia dobrano walidacją krzyżową (`experiments/tuning.py`, opis w
+[EXPERIMENTS.md](EXPERIMENTS.md#dobór-hiperparametrów)).
 
 ## Uczenie i wyniki wstępne
 
@@ -87,7 +90,7 @@ podział 75% / 25% ze stratyfikacją, `seed = 42`.
 | Klasyfikator       | Accuracy | F1 makro |
 |--------------------|----------|----------|
 | System regułowy    | 0,794    | 0,792    |
-| Drzewo decyzyjne   | 0,820    | 0,817    |
+| Drzewo decyzyjne   | 0,821    | 0,817    |
 | Sieć neuronowa     | 0,861    | 0,857    |
 
 Szczegółowe porównanie (macierze pomyłek, wpływ kompletności danych, wiele powtórzeń):

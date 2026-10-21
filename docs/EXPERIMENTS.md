@@ -15,8 +15,8 @@ Kod: `experiments/evaluation.py` (eksperymenty), `experiments/run.py` (zapis wyn
   - **F1 makro:** średnia miar F1 dla trzech poziomów (każdy poziom ma tę samą wagę),
   - **macierz pomyłek:** jaka część osób z danego poziomu trafiła do każdej klasy,
   - **czas uczenia** i **czas klasyfikacji jednej osoby** (odpowiada jednemu żądaniu API).
-- Wszystkie przebiegi są zapisywane w MLflow (eksperymenty `porownanie-klasyfikatorow`,
-  `wplyw-kompletnosci`, `wykrywanie-przeciwwskazan` i `jakosc-planu`).
+- Wszystkie przebiegi są zapisywane w MLflow (eksperymenty `dobor-hiperparametrow`,
+  `porownanie-klasyfikatorow`, `wplyw-kompletnosci`, `wykrywanie-przeciwwskazan` i `jakosc-planu`).
 
 Odtworzenie wyników:
 
@@ -26,6 +26,50 @@ python -m experiments.run      # ok. 1 min, wyniki w docs/experiments/
 mlflow ui                      # przeglądanie przebiegów: http://127.0.0.1:5000
 ```
 
+## Dobór hiperparametrów
+
+**Pytanie:** jakie ustawienia modeli ML (głębokość drzewa, rozmiar sieci) przyjąć?
+
+**Metodyka** (`experiments/tuning.py`):
+- Przeszukiwanie siatki (`GridSearchCV`) z 5-krotną walidacją krzyżową: dane uczące dzielone są
+  na 5 części, model uczy się na 4 i jest oceniany na piątej, kolejno dla każdej części.
+- Dane: część ucząca zbioru z `seed = 42` (3750 osób, 20% braków), ten sam zbiór co przy uczeniu
+  modeli dla aplikacji. Dane testowe nie biorą udziału w doborze, więc nie zawyżają późniejszej oceny.
+- Miara: F1 makro (średnia ± odchylenie z 5 części).
+- Siatki: drzewo – głębokość {3, 4, 6, 8, 10, bez limitu} × min. próbek w liściu {1, 5, 20, 50};
+  sieć – warstwy ukryte {(16), (32), (32, 16), (64, 32)} × regularyzacja L2 `alpha` {0,0001; 0,001; 0,01}.
+- Wybór według **reguły jednego odchylenia standardowego**: spośród ustawień, których wynik jest
+  gorszy od najlepszego o mniej niż jego odchylenie standardowe, wybiera się najprostsze. Różnica
+  mniejsza niż odchylenie mieści się w losowej zmienności, a prostszy model łatwiej zinterpretować
+  i trudniej go przeuczyć.
+
+Wyniki (`docs/experiments/tuning.csv`, pięć najlepszych ustawień każdego modelu):
+
+| Model            | Ustawienia                            | F1 makro (CV)   |
+|------------------|---------------------------------------|-----------------|
+| Drzewo decyzyjne | głębokość 10, min. 5 w liściu         | 0,816 ± 0,009   |
+| Drzewo decyzyjne | głębokość 8, min. 5 w liściu          | 0,814 ± 0,013   |
+| Drzewo decyzyjne | bez limitu, min. 5 w liściu           | 0,811 ± 0,013   |
+| Drzewo decyzyjne | głębokość 10, min. 1 w liściu         | 0,810 ± 0,008   |
+| Drzewo decyzyjne | **głębokość 6, min. 5 w liściu**      | **0,809 ± 0,008** |
+| Sieć neuronowa   | **(32, 16), alpha 0,0001**            | **0,860 ± 0,008** |
+| Sieć neuronowa   | (32, 16), alpha 0,001                 | 0,858 ± 0,006   |
+| Sieć neuronowa   | (32, 16), alpha 0,01                  | 0,857 ± 0,007   |
+| Sieć neuronowa   | (64, 32), alpha 0,01                  | 0,855 ± 0,021   |
+| Sieć neuronowa   | (16), alpha 0,001                     | 0,851 ± 0,016   |
+
+**Wnioski:**
+
+1. **Sieć neuronowa:** wstępnie przyjęte ustawienia (32 i 16 neuronów, `alpha` 0,0001) okazały się
+   najlepsze. Sieć z jedną warstwą wypada wyraźnie gorzej, a większa (64, 32) nie daje poprawy.
+2. **Drzewo decyzyjne:** najlepsze jest drzewo o głębokości 10 (0,816), ale drzewo o głębokości 6
+   mieści się w granicy jednego odchylenia (próg 0,807), a ma do 16 razy mniej liści, więc jego
+   reguły da się przeczytać. Wstępne ustawienie (min. 20 próbek w liściu, 0,799) było poza tą
+   granicą, dlatego zmieniono je na **min. 5 próbek w liściu**.
+3. Na zbiorach testowych zmiana drzewa nie przyniosła wyraźnej poprawy (accuracy 0,806 wobec
+   0,808 wcześniej, w granicach odchylenia), więc dobór parametrów potwierdza przede wszystkim,
+   że wyniki porównania nie wynikają z przypadkowo złych ustawień modeli.
+
 ## Eksperyment 1: porównanie klasyfikatorów
 
 Dane testowe z 20% pominiętych odpowiedzi opcjonalnych (`docs/experiments/comparison.csv`).
@@ -33,8 +77,8 @@ Dane testowe z 20% pominiętych odpowiedzi opcjonalnych (`docs/experiments/compa
 | Klasyfikator       | Accuracy        | F1 makro        | Czas uczenia | Czas klasyfikacji 1 osoby |
 |--------------------|-----------------|-----------------|--------------|---------------------------|
 | System regułowy    | 0,792 ± 0,003   | 0,792 ± 0,003   | —            | 0,02 ms                   |
-| Drzewo decyzyjne   | 0,808 ± 0,007   | 0,808 ± 0,006   | 0,01 s       | 0,42 ms                   |
-| Sieć neuronowa     | 0,866 ± 0,012   | 0,864 ± 0,012   | 0,13 s       | 0,53 ms                   |
+| Drzewo decyzyjne   | 0,806 ± 0,010   | 0,806 ± 0,011   | 0,01 s       | 0,41 ms                   |
+| Sieć neuronowa     | 0,866 ± 0,012   | 0,864 ± 0,012   | 0,14 s       | 0,52 ms                   |
 
 ![Macierze pomyłek](experiments/confusion_matrices.png)
 
@@ -42,9 +86,10 @@ Dane testowe z 20% pominiętych odpowiedzi opcjonalnych (`docs/experiments/compa
 
 1. Sieć neuronowa osiąga najwyższą trafność, o ok. 7 punktów procentowych wyższą od systemu
    regułowego i o ok. 6 p.p. wyższą od drzewa decyzyjnego.
-2. Żaden klasyfikator nie pomylił poziomu początkującego z zaawansowanym (zera w rogach macierzy).
-   Błędy dotyczą wyłącznie poziomów sąsiednich. Ma to znaczenie dla bezpieczeństwa:
-   osoba początkująca nie dostanie planu dla zaawansowanych.
+2. Żadna osoba początkująca nie została zaklasyfikowana jako zaawansowana. Pomyłka odwrotna
+   (zaawansowany uznany za początkującego) zdarzyła się sporadycznie: 0,1–0,2% osób, czyli kilka
+   na ok. 2000 zaawansowanych. Pozostałe błędy dotyczą poziomów sąsiednich. Ma to znaczenie dla
+   bezpieczeństwa: osoba początkująca nie dostanie planu dla zaawansowanych.
 3. Najtrudniejszy do rozpoznania jest poziom średni (70–78% poprawnych), bo graniczy z oboma
    pozostałymi.
 4. Czas klasyfikacji jednej osoby jest poniżej 1 ms dla wszystkich metod, więc wybór
@@ -58,11 +103,11 @@ i poziom aktywności (`docs/experiments/completeness.csv`).
 
 | Pominięte odpowiedzi | System regułowy | Drzewo decyzyjne | Sieć neuronowa  |
 |----------------------|-----------------|------------------|-----------------|
-| 0%                   | 0,806 ± 0,009   | 0,828 ± 0,009    | 0,879 ± 0,011   |
-| 20%                  | 0,789 ± 0,005   | 0,801 ± 0,010    | 0,860 ± 0,010   |
-| 40%                  | 0,760 ± 0,009   | 0,765 ± 0,016    | 0,832 ± 0,016   |
-| 60%                  | 0,732 ± 0,005   | 0,708 ± 0,031    | 0,800 ± 0,007   |
-| 80%                  | 0,695 ± 0,005   | 0,609 ± 0,066    | 0,733 ± 0,020   |
+| 0%                   | 0,806 ± 0,009   | 0,825 ± 0,013    | 0,879 ± 0,011   |
+| 20%                  | 0,789 ± 0,005   | 0,798 ± 0,012    | 0,860 ± 0,010   |
+| 40%                  | 0,760 ± 0,009   | 0,765 ± 0,014    | 0,832 ± 0,016   |
+| 60%                  | 0,732 ± 0,005   | 0,710 ± 0,031    | 0,800 ± 0,007   |
+| 80%                  | 0,695 ± 0,005   | 0,610 ± 0,065    | 0,733 ± 0,020   |
 | 100%                 | 0,675 ± 0,004   | 0,484 ± 0,125    | 0,648 ± 0,054   |
 
 ![Wpływ kompletności danych](experiments/completeness.png)
@@ -156,10 +201,10 @@ Wyniki: średnia z 5 ziaren (`docs/experiments/plan_quality.csv`).
 | Pominięte odpowiedzi | Klasyfikator     | Plan dla prawdziwego poziomu | Za trudny | Za łatwy | Ćwiczenie trudniejsze niż poziom | Podobieństwo ćwiczeń |
 |----------------------|------------------|------------------------------|-----------|----------|----------------------------------|----------------------|
 | 0%                   | System regułowy  | 0,806                        | 0,149     | 0,045    | 0,127                            | 0,935                |
-| 0%                   | Drzewo decyzyjne | 0,828                        | 0,084     | 0,088    | 0,070                            | 0,944                |
+| 0%                   | Drzewo decyzyjne | 0,825                        | 0,081     | 0,094    | 0,067                            | 0,943                |
 | 0%                   | Sieć neuronowa   | 0,879                        | 0,061     | 0,060    | 0,051                            | 0,961                |
 | 60%                  | System regułowy  | 0,732                        | 0,125     | 0,143    | 0,104                            | 0,909                |
-| 60%                  | Drzewo decyzyjne | 0,701                        | 0,169     | 0,130    | 0,151                            | 0,900                |
+| 60%                  | Drzewo decyzyjne | 0,703                        | 0,168     | 0,129    | 0,150                            | 0,901                |
 | 60%                  | Sieć neuronowa   | 0,798                        | 0,093     | 0,109    | 0,079                            | 0,933                |
 | 100%                 | System regułowy  | 0,675                        | 0,068     | 0,257    | 0,055                            | 0,886                |
 | 100%                 | Drzewo decyzyjne | 0,484                        | 0,315     | 0,200    | 0,292                            | 0,820                |

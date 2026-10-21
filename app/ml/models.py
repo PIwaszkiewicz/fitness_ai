@@ -20,10 +20,11 @@ def build_decision_tree(seed: int = 42) -> Pipeline:
     """Drzewo decyzyjne: model interpretowalny, jego decyzje da się rozpisać jako reguły.
 
     max_depth i min_samples_leaf ograniczają rozrost drzewa, żeby nie uczyło się szumu.
+    Wartości dobrano walidacją krzyżową (experiments/tuning.py, opis w docs/EXPERIMENTS.md).
     """
     return Pipeline([
         ("imputer", missing_values_imputer()),
-        ("model", DecisionTreeClassifier(max_depth=6, min_samples_leaf=20, random_state=seed)),
+        ("model", DecisionTreeClassifier(max_depth=6, min_samples_leaf=5, random_state=seed)),
     ])
 
 
@@ -32,6 +33,7 @@ def build_mlp(seed: int = 42) -> Pipeline:
 
     StandardScaler sprowadza cechy do podobnej skali, bez czego sieć uczy się źle.
     early_stopping przerywa uczenie, gdy wynik na części walidacyjnej przestaje rosnąć.
+    Rozmiar warstw potwierdzono walidacją krzyżową (experiments/tuning.py).
     """
     return Pipeline([
         ("imputer", missing_values_imputer()),

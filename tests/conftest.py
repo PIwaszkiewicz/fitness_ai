@@ -1,5 +1,6 @@
 """Wspólne fixture'y testów. Każdy test dostaje osobną, pustą bazę SQLite."""
 
+import joblib
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -8,6 +9,9 @@ from sqlalchemy.orm import sessionmaker
 from app import models  # noqa: F401  (rejestruje tabele w Base.metadata)
 from app.core.database import Base, get_db
 from app.main import app
+from app.ml import predictor
+from app.ml.data_generator import generate_dataset
+from app.ml.models import build_decision_tree, build_mlp
 
 
 @pytest.fixture
@@ -27,3 +31,15 @@ def client(db_session):
     app.dependency_overrides[get_db] = lambda: db_session
     yield TestClient(app)
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def trained_models(tmp_path, monkeypatch):
+    """Uczy małe modele w katalogu tymczasowym i podmienia katalog modeli w predyktorze."""
+    X, y = generate_dataset(800, missing_rate=0.2)
+    joblib.dump(build_decision_tree().fit(X, y), tmp_path / "decision_tree.joblib")
+    joblib.dump(build_mlp().fit(X, y), tmp_path / "mlp.joblib")
+    monkeypatch.setattr(predictor, "ARTIFACTS_DIR", tmp_path)
+    predictor.load_classifier.cache_clear()
+    yield
+    predictor.load_classifier.cache_clear()

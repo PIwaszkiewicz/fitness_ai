@@ -52,6 +52,7 @@ ruff check .
 
 # 7. Eksperymenty badawcze (wyniki w docs/experiments/) i ich przeglądanie w MLflow
 python -m experiments.run
+python -m experiments.api_latency
 mlflow ui
 ```
 

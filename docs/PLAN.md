@@ -27,5 +27,5 @@ Każdy krok realizowany jest na osobnej gałęzi i scalany do `main` przez pull 
 
 - [x] Eksperyment 4: jakość planu treningowego w zależności od kompletności danych
 - [x] Dobór hiperparametrów modeli ML walidacją krzyżową
-- [ ] Test istotności statystycznej różnic między klasyfikatorami
+- [x] Test istotności statystycznej różnic między klasyfikatorami
 - [ ] Pomiar czasu odpowiedzi API

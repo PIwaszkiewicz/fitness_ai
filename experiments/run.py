@@ -20,6 +20,7 @@ from experiments.evaluation import (
     summarize,
 )
 from experiments.plan_quality import plan_quality_study
+from experiments.significance import significance_study
 from experiments.tuning import tune_hyperparameters
 
 SEEDS = [1, 2, 3, 4, 5]
@@ -192,6 +193,16 @@ def run_experiments(output_dir: Path, seeds: list[int], n_samples: int) -> None:
     with mlflow.start_run(run_name="wykres-jakosci-planu"):
         mlflow.log_artifact(str(output_dir / "plan_quality.png"))
 
+    # Test istotności różnic między klasyfikatorami (dane jak w eksperymencie 2)
+    significance = significance_study(seeds, n_samples)
+    significance.to_csv(output_dir / "significance.csv", index=False)
+    log_runs(
+        "istotnosc-roznic",
+        significance,
+        ["test_missing_rate", "classifier_a", "classifier_b"],
+        ["only_a_correct", "only_b_correct", "p_value"],
+    )
+
     # Dobór hiperparametrów (walidacja krzyżowa na danych uczących)
     tuning = tune_hyperparameters(n_samples)
     tuning.round(4).to_csv(output_dir / "tuning.csv", index=False)
@@ -208,6 +219,8 @@ def run_experiments(output_dir: Path, seeds: list[int], n_samples: int) -> None:
     print(plan_quality_summary.round(3).to_string(index=False))
     print()
     print(tuning.round(3).to_string(index=False))
+    print()
+    print(significance.to_string(index=False))
 
 
 if __name__ == "__main__":

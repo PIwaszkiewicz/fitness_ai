@@ -5,9 +5,9 @@ Kod: `experiments/evaluation.py` (eksperymenty), `experiments/run.py` (zapis wyn
 
 ## Metodyka
 
-- Każdy eksperyment powtórzono dla 5 ziaren losowania (`seed` 1–5). Dla każdego ziarna
-  wygenerowano nowy zbiór 5000 osób i podzielono go na część uczącą (75%) i testową (25%)
-  z zachowaniem proporcji poziomów. Wyniki podano jako średnią ± odchylenie standardowe.
+- Każdy eksperyment (poza doborem hiperparametrów) powtórzono dla 5 ziaren losowania
+  (`seed` 1–5). Dla każdego ziarna wygenerowano nowy zbiór 5000 osób i podzielono go na część
+  uczącą (75%) i testową (25%) z zachowaniem proporcji poziomów. Wyniki podano jako średnią ± odchylenie standardowe.
 - Klasyfikatory ML uczą się na danych, w których 20% odpowiedzi opcjonalnych jest pominiętych
   (typowa kompletność kwestionariusza).
 - Metryki:
@@ -16,7 +16,8 @@ Kod: `experiments/evaluation.py` (eksperymenty), `experiments/run.py` (zapis wyn
   - **macierz pomyłek:** jaka część osób z danego poziomu trafiła do każdej klasy,
   - **czas uczenia** i **czas klasyfikacji jednej osoby** (odpowiada jednemu żądaniu API).
 - Wszystkie przebiegi są zapisywane w MLflow (eksperymenty `dobor-hiperparametrow`,
-  `porownanie-klasyfikatorow`, `wplyw-kompletnosci`, `wykrywanie-przeciwwskazan` i `jakosc-planu`).
+  `porownanie-klasyfikatorow`, `wplyw-kompletnosci`, `istotnosc-roznic`, `wykrywanie-przeciwwskazan`
+  i `jakosc-planu`).
 
 Odtworzenie wyników:
 
@@ -85,7 +86,8 @@ Dane testowe z 20% pominiętych odpowiedzi opcjonalnych (`docs/experiments/compa
 **Obserwacje:**
 
 1. Sieć neuronowa osiąga najwyższą trafność, o ok. 7 punktów procentowych wyższą od systemu
-   regułowego i o ok. 6 p.p. wyższą od drzewa decyzyjnego.
+   regułowego i o ok. 6 p.p. wyższą od drzewa decyzyjnego. Obie różnice są istotne statystycznie
+   (zob. [test McNemara](#istotność-statystyczna-różnic-między-klasyfikatorami)).
 2. Żadna osoba początkująca nie została zaklasyfikowana jako zaawansowana. Pomyłka odwrotna
    (zaawansowany uznany za początkującego) zdarzyła się sporadycznie: 0,1–0,2% osób, czyli kilka
    na ok. 2000 zaawansowanych. Pozostałe błędy dotyczą poziomów sąsiednich. Ma to znaczenie dla
@@ -127,6 +129,46 @@ i poziom aktywności (`docs/experiments/completeness.csv`).
 **Wniosek projektowy:** przy niskiej kompletności danych bezpieczniej jest korzystać z systemu
 regułowego albo poinformować użytkownika, że wynik jest mało wiarygodny. API zwraca w tym celu
 kompletność danych (`data_completeness`) razem z wynikiem klasyfikacji.
+
+## Istotność statystyczna różnic między klasyfikatorami
+
+**Pytanie:** czy różnice trafności z eksperymentów 1 i 2 są rzeczywiste, czy mogą wynikać
+z przypadku (losowego doboru osób testowych)?
+
+**Metodyka** (`experiments/significance.py`):
+- **Dokładny test McNemara** dla każdej pary klasyfikatorów. Oba klasyfikatory oceniane są na tych
+  samych osobach, więc liczy się tylko osoby, na których się różnią: *b* – poprawnie sklasyfikował
+  tylko pierwszy, *c* – tylko drugi. Hipoteza zerowa (metody równie dobre) oznacza, że każda
+  rozbieżność z prawdopodobieństwem 50% przypada każdej metodzie, co sprawdza test dwumianowy.
+- Dane i modele jak w eksperymencie 2; osoby testowe z 5 ziaren łączone są w jeden test
+  (6250 osób dla każdego odsetka braków).
+- 18 porównań (3 pary × 6 odsetków braków), więc zastosowano **poprawkę Bonferroniego**: różnica
+  jest istotna, gdy *p* < 0,05 / 18 ≈ 0,0028. Bez poprawki przy wielu testach łatwo o przypadkowo
+  „istotny” wynik.
+- Test McNemara wybrano zamiast testu Wilcoxona dla 5 powtórzeń, bo przy 5 parach test Wilcoxona
+  nie może dać *p* mniejszego niż 0,0625, czyli nigdy nie wykazałby istotności.
+
+Wyniki (`docs/experiments/significance.csv`). W komórce: metoda lepsza w danej parze i wartość *p*
+(„–”: różnica nieistotna).
+
+| Pominięte odpowiedzi | Sieć vs reguły        | Sieć vs drzewo        | Drzewo vs reguły        |
+|----------------------|-----------------------|-----------------------|-------------------------|
+| 0%                   | sieć, *p* < 0,001     | sieć, *p* < 0,001     | drzewo, *p* < 0,001     |
+| 20%                  | sieć, *p* < 0,001     | sieć, *p* < 0,001     | – (*p* = 0,12)          |
+| 40%                  | sieć, *p* < 0,001     | sieć, *p* < 0,001     | – (*p* = 0,54)          |
+| 60%                  | sieć, *p* < 0,001     | sieć, *p* < 0,001     | reguły, *p* = 0,002     |
+| 80%                  | sieć, *p* < 0,001     | sieć, *p* < 0,001     | reguły, *p* < 0,001     |
+| 100%                 | reguły, *p* < 0,001   | sieć, *p* < 0,001     | reguły, *p* < 0,001     |
+
+**Obserwacje:**
+
+1. Przewaga sieci neuronowej nad obiema pozostałymi metodami jest istotna statystycznie przy
+   każdej kompletności danych poza samymi danymi podstawowymi.
+2. Przy samych danych podstawowych (100% braków) system regułowy jest istotnie lepszy od sieci
+   (*p* < 0,001), co potwierdza wniosek z eksperymentu 2.
+3. Przy typowej kompletności (20–40% braków) drzewo decyzyjne **nie jest** istotnie lepsze od
+   systemu regułowego. Różnica ok. 1 p.p. z eksperymentu 1 mieści się w granicach przypadku, więc
+   drzewo nie daje przewagi trafności, a jego zaletą pozostaje tylko interpretowalność.
 
 ## Eksperyment 3: wykrywanie przeciwwskazań dla nowych ćwiczeń
 

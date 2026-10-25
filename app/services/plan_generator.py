@@ -14,6 +14,7 @@ Ten sam profil zawsze daje ten sam plan (brak losowości), więc plan można odt
 
 from app.ml.predictor import ClassifierName
 from app.models.enums import (
+    CARDIOVASCULAR_LIMITATIONS,
     Difficulty,
     Equipment,
     FitnessLevel,
@@ -50,6 +51,32 @@ ALLOWED_DIFFICULTIES = {
     FitnessLevel.INTERMEDIATE: {Difficulty.BEGINNER, Difficulty.INTERMEDIATE},
     FitnessLevel.ADVANCED: {Difficulty.BEGINNER, Difficulty.INTERMEDIATE, Difficulty.ADVANCED},
 }
+
+# Wskazówki dla celu „redukcja masy ciała”. Źródła: docs/ZRODLA.md.
+WEIGHT_LOSS_TIPS = [
+    (
+        "O spadku masy ciała decyduje przede wszystkim dieta. Zalecany deficyt to około "
+        "500–750 kcal dziennie poniżej zapotrzebowania."
+    ),
+    (
+        "Sam trening zwykle daje niewielki spadek masy, średnio 2–3 kg. "
+        "Najlepsze efekty daje połączenie ruchu z dietą."
+    ),
+    (
+        "Poza tym planem zaplanuj co najmniej 150–300 minut tygodniowo umiarkowanego wysiłku "
+        "tlenowego, np. szybkiego marszu, roweru lub pływania. Im więcej ruchu, tym większy efekt."
+    ),
+    "Nie rezygnuj z ćwiczeń siłowych. Pomagają zachować mięśnie podczas redukcji.",
+    (
+        "Ćwiczenia interwałowe dają podobny spadek tkanki tłuszczowej jak dłuższy wysiłek ciągły, "
+        "a zajmują mniej czasu."
+    ),
+    (
+        "Już spadek o 3–5% masy ciała poprawia zdrowie. Regularny ruch pomaga też utrzymać wagę "
+        "po redukcji."
+    ),
+]
+INTERVAL_CONSULTATION_TIP = "Przed treningiem interwałowym skonsultuj się z lekarzem."
 
 # Szablony dni: nazwa i kolejność grup mięśniowych, z których wybierane są ćwiczenia.
 G = MuscleGroup
@@ -116,6 +143,14 @@ def build_days(pool: list[ExerciseRead], days_per_week: int, count: int) -> list
     return days
 
 
+def weight_loss_tips(profile: UserProfileRead) -> list[str]:
+    """Wskazówki redukcyjne. Przy chorobach układu krążenia dochodzi zalecenie konsultacji."""
+    tips = list(WEIGHT_LOSS_TIPS)
+    if any(item in CARDIOVASCULAR_LIMITATIONS for item in profile.limitations):
+        tips.append(INTERVAL_CONSULTATION_TIP)
+    return tips
+
+
 def progression_tips(profile: UserProfileRead, level: FitnessLevel) -> list[str]:
     """Rekomendacje, jak zwiększać trudność treningu w kolejnych tygodniach."""
     tips = []
@@ -130,6 +165,8 @@ def progression_tips(profile: UserProfileRead, level: FitnessLevel) -> list[str]
         )
     elif profile.training_goal in (TrainingGoal.WEIGHT_LOSS, TrainingGoal.ENDURANCE):
         tips.append("Co tydzień dodaj 1–2 powtórzenia w serii albo skróć przerwy o 5–10 sekund.")
+        if profile.training_goal == TrainingGoal.WEIGHT_LOSS:
+            tips.extend(weight_loss_tips(profile))
     else:
         tips.append(
             "Gdy we wszystkich seriach wykonasz górny zakres powtórzeń z dobrą techniką, "

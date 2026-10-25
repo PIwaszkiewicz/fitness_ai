@@ -24,7 +24,7 @@ Priorytety:
 | A6 | `app/ml/contraindication_detection.py:76` | podpór na dłoniach → nadgarstek | reguła 3 | jak A4; najlepiej opinia fizjoterapeuty |
 | A7 | `app/ml/contraindication_detection.py:82` | ciężkie ćwiczenia ze sztangą → lędźwie, nadciśnienie | reguła 4 (wzrost ciśnienia przy dużym ciężarze) | MacDougall i in., *Arterial blood pressure response to heavy resistance exercise*, J Appl Physiol 1985; Pescatello i in., ACSM Position Stand *Exercise and hypertension*, MSSE 2004 |
 | A8 | `app/ml/contraindication_detection.py:85` | intensywne cardio → nadciśnienie | reguła 5 | Pescatello i in. 2004 (jak A7) |
-| A9 | `app/data/exercises.json` | 108 przeciwwskazań w 67 ćwiczeniach | etykiety atlasu są wzorcem w eksperymencie 3 | najlepiej przegląd przez fizjoterapeutę; ewentualnie Kisner, Colby (jak A4) |
+| A9 | `app/data/exercises.json` | 221 przeciwwskazań w 147 ćwiczeniach | etykiety atlasu są wzorcem w eksperymencie 3 (policzonym na 67 ćwiczeniach) | najlepiej przegląd przez fizjoterapeutę; ewentualnie Kisner, Colby (jak A4) |
 
 ## B. Normy sprawności i zasady treningu
 

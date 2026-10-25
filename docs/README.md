@@ -160,7 +160,7 @@ odpowiedziano, liczony tylko spośród pytań widocznych dla danego użytkownika
 **Ostrzeżenia zdrowotne** nie blokują zapisu profilu, a wskazują potrzebę konsultacji:
 choroba układu krążenia bez zgody lekarza, ból od 7/10, tętno spoczynkowe powyżej 100/min.
 
-Atlas zawiera 67 ćwiczeń. Przeciwwskazania w atlasie są uproszczone i służą celom projektu; nie zastępują konsultacji
+Atlas zawiera 147 ćwiczeń. Przeciwwskazania w atlasie są uproszczone i służą celom projektu; nie zastępują konsultacji
 z lekarzem ani fizjoterapeutą.
 
 ## Plan treningowy

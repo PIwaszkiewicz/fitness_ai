@@ -65,5 +65,22 @@
   {"name": "Brzuszki", "muscle_group": "core", "equipment": "none", "difficulty": "beginner", "movement_pattern": "core_dynamic", "contraindications": ["lower_back", "neck"]},
   {"name": "Nożyce", "muscle_group": "core", "equipment": "none", "difficulty": "beginner", "movement_pattern": "core_dynamic", "contraindications": ["lower_back"]},
   {"name": "Skip A w miejscu", "muscle_group": "full_body", "equipment": "none", "difficulty": "beginner", "movement_pattern": "cardio", "contraindications": ["knee", "ankle", "heart_condition"]},
-  {"name": "Rwanie kettlebell", "muscle_group": "full_body", "equipment": "kettlebell", "difficulty": "advanced", "movement_pattern": "hinge", "contraindications": ["lower_back", "shoulder", "wrist", "hypertension", "heart_condition"]}
+  {"name": "Rwanie kettlebell", "muscle_group": "full_body", "equipment": "kettlebell", "difficulty": "advanced", "movement_pattern": "hinge", "contraindications": ["lower_back", "shoulder", "wrist", "hypertension", "heart_condition"]},
+  {"name": "Marsz w miejscu z wysokim unoszeniem kolan", "muscle_group": "full_body", "equipment": "none", "difficulty": "beginner", "movement_pattern": "cardio", "contraindications": ["heart_condition"]},
+  {"name": "Pajacyki bez skoku", "muscle_group": "full_body", "equipment": "none", "difficulty": "beginner", "movement_pattern": "cardio", "contraindications": ["heart_condition"]},
+  {"name": "Bieg w miejscu", "muscle_group": "full_body", "equipment": "none", "difficulty": "beginner", "movement_pattern": "cardio", "contraindications": ["knee", "ankle", "heart_condition"]},
+  {"name": "Skip C w miejscu", "muscle_group": "full_body", "equipment": "none", "difficulty": "beginner", "movement_pattern": "cardio", "contraindications": ["knee", "ankle", "heart_condition"]},
+  {"name": "Boksowanie w miejscu", "muscle_group": "full_body", "equipment": "none", "difficulty": "beginner", "movement_pattern": "cardio", "contraindications": ["shoulder", "heart_condition"]},
+  {"name": "Burpees bez wyskoku", "muscle_group": "full_body", "equipment": "none", "difficulty": "beginner", "movement_pattern": "cardio", "contraindications": ["wrist", "heart_condition"]},
+  {"name": "Skakanka", "muscle_group": "full_body", "equipment": "none", "difficulty": "intermediate", "movement_pattern": "cardio", "contraindications": ["knee", "ankle", "hypertension", "heart_condition"]},
+  {"name": "Wyskoki z przysiadu", "muscle_group": "full_body", "equipment": "none", "difficulty": "intermediate", "movement_pattern": "cardio", "contraindications": ["knee", "ankle", "hypertension", "heart_condition"]},
+  {"name": "Przeskoki boczne łyżwiarza", "muscle_group": "full_body", "equipment": "none", "difficulty": "intermediate", "movement_pattern": "cardio", "contraindications": ["knee", "ankle", "hip", "hypertension", "heart_condition"]},
+  {"name": "Chód niedźwiedzia", "muscle_group": "full_body", "equipment": "none", "difficulty": "intermediate", "movement_pattern": "cardio", "contraindications": ["wrist", "shoulder", "hypertension", "heart_condition"]},
+  {"name": "Wyskoki na skrzynię", "muscle_group": "full_body", "equipment": "none", "difficulty": "advanced", "movement_pattern": "cardio", "contraindications": ["knee", "ankle", "hypertension", "heart_condition"]},
+  {"name": "Rower stacjonarny – sprinty", "muscle_group": "full_body", "equipment": "machine", "difficulty": "intermediate", "movement_pattern": "cardio", "contraindications": ["hypertension", "heart_condition"]},
+  {"name": "Orbitrek – interwały", "muscle_group": "full_body", "equipment": "machine", "difficulty": "beginner", "movement_pattern": "cardio", "contraindications": ["heart_condition"]},
+  {"name": "Ergometr wioślarski – interwały", "muscle_group": "full_body", "equipment": "machine", "difficulty": "intermediate", "movement_pattern": "cardio", "contraindications": ["lower_back", "hypertension", "heart_condition"]},
+  {"name": "Bieżnia – marsz pod górę", "muscle_group": "full_body", "equipment": "machine", "difficulty": "beginner", "movement_pattern": "cardio", "contraindications": ["ankle", "heart_condition"]},
+  {"name": "Bieżnia – bieg interwałowy", "muscle_group": "full_body", "equipment": "machine", "difficulty": "advanced", "movement_pattern": "cardio", "contraindications": ["knee", "ankle", "hypertension", "heart_condition"]},
+  {"name": "Stepper – interwały", "muscle_group": "full_body", "equipment": "machine", "difficulty": "beginner", "movement_pattern": "cardio", "contraindications": ["knee", "heart_condition"]}
 ]

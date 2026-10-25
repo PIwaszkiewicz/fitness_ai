@@ -24,7 +24,7 @@ Priorytety:
 | A6 | `app/ml/contraindication_detection.py:76` | podpór na dłoniach → nadgarstek | reguła 3 | jak A4; najlepiej opinia fizjoterapeuty |
 | A7 | `app/ml/contraindication_detection.py:82` | ciężkie ćwiczenia ze sztangą → lędźwie, nadciśnienie | reguła 4 (wzrost ciśnienia przy dużym ciężarze) | MacDougall i in., *Arterial blood pressure response to heavy resistance exercise*, J Appl Physiol 1985; Pescatello i in., ACSM Position Stand *Exercise and hypertension*, MSSE 2004 |
 | A8 | `app/ml/contraindication_detection.py:85` | intensywne cardio → nadciśnienie | reguła 5 | Pescatello i in. 2004 (jak A7) |
-| A9 | `app/data/exercises.json` | 108 przeciwwskazań w 67 ćwiczeniach | etykiety atlasu są wzorcem w eksperymencie 3 | najlepiej przegląd przez fizjoterapeutę; ewentualnie Kisner, Colby (jak A4) |
+| A9 | `app/data/exercises.json` | 155 przeciwwskazań w 84 ćwiczeniach | etykiety atlasu są wzorcem w eksperymencie 3 (policzonym na 67 ćwiczeniach) | najlepiej przegląd przez fizjoterapeutę; ewentualnie Kisner, Colby (jak A4) |
 
 ## B. Normy sprawności i zasady treningu
 
@@ -44,6 +44,7 @@ Priorytety:
 | B12 | `app/services/plan_generator.py:138` | lżejszy tydzień co 4–6 tygodni | roztrenowanie (deload) | Bell i in., konsensus delficki dotyczący deloadu, Sports Medicine – Open 2023 |
 | B13 | `app/ml/data_generator.py:82`, `app/ml/features.py` | BMI jako cecha | definicja i klasyfikacja BMI | WHO, klasyfikacja BMI |
 | B14 | `app/schemas/user_profile.py:27` | wiek od 16 lat | dolna granica wieku | WHO 2020 (Bull i in., *WHO guidelines on physical activity and sedentary behaviour*, BJSM 2020). Zalecenia dla dorosłych dotyczą osób od 18 lat, a 16–17 lat to grupa młodzieży. Trzeba to uzasadnić albo podnieść granicę do 18 lat. |
+| B15 | `app/services/plan_generator.py` (`WEIGHT_LOSS_TIPS`) | wskazówki dla celu „redukcja masy ciała”: deficyt 500–750 kcal dziennie, efekt samego treningu ok. 2–3 kg, 150–300 min wysiłku tlenowego tygodniowo, utrzymanie ćwiczeń siłowych, interwały, korzyści ze spadku masy o 3–5% | treść i liczby we wskazówkach redukcyjnych | Jensen i in., *2013 AHA/ACC/TOS Guideline for the Management of Overweight and Obesity in Adults*, Circulation 2014; Donnelly i in., ACSM Position Stand, MSSE 2009; Bull i in., WHO 2020 guidelines, BJSM 2020; Swift i in., Prog Cardiovasc Dis 2014; Oppert i in., EASO Physical Activity Working Group, Obesity Reviews 2021; Wewege i in., Obesity Reviews 2017 |
 
 ## C. Metodyka badań
 
@@ -76,6 +77,7 @@ Priorytety:
 | D8 | `app/services/plan_generator.py:142` | powtórzenie testów co 4 tygodnie | założenie; można powiązać z typowym czasem mezocyklu |
 | D9 | `app/services/plan_generator.py:48` | dozwolone trudności ćwiczeń dla poziomu | reguła projektowa: poziom ćwiczenia nie wyższy niż poziom użytkownika |
 | D10 | `experiments/plan_quality.py` | losowe preferencje osób testowych | założenie eksperymentu 4, opisane w ograniczeniach |
+| D11 | `app/data/exercises.json` (ćwiczenia cardio) | lista ćwiczeń cardio, ich poziom trudności i przeciwwskazania | literatura (Oppert 2021, Wewege 2017) uzasadnia obecność wysiłku tlenowego i interwałów w planie redukcyjnym, ale nie wskazuje konkretnych ćwiczeń; proponowana weryfikacja: wartości MET z Herrmann i in., *2024 Adult Compendium of Physical Activities*, JSHS 2024 |
 
 ## Rekomendacja
 

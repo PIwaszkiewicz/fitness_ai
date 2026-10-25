@@ -23,6 +23,7 @@
 | `docker-compose.yml`    | Uruchomienie całego systemu jednym poleceniem                 |
 | `render.yaml`           | Konfiguracja serwisu na platformie Render (wdrożenie)         |
 | `docs/PLAN.md`          | Plan projektu z listą kroków                                  |
+| `docs/ZRODLA.md`        | Wartości w kodzie wymagające źródeł w literaturze             |
 | `CONTEXT.md`            | Opis projektu, cele i zakres pracy                            |
 | `requirements.txt`      | Zależności potrzebne do działania serwera                     |
 | `requirements-dev.txt`  | Dodatkowo testy, ruff i narzędzia do eksperymentów            |

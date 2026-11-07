@@ -19,12 +19,13 @@ def get_training_plan(
 ):
     """Klasyfikuje poziom sprawności i buduje plan z bezpiecznych ćwiczeń atlasu.
 
-    Poziom wyznacza najlepszy klasyfikator z oceny (method służy tylko eksperymentom).
+    Poziom wyznacza klasyfikator najlepszy w ocenie przy liczbie
+    pustych odpowiedzi w profilu (method służy tylko eksperymentom).
     Gdy model ML nie jest wytrenowany, poziom wyznacza system regułowy
     (pole classifier w odpowiedzi mówi, który klasyfikator został użyty).
     """
     if method is None:
-        method = predictor.best_classifier()
+        method = predictor.best_classifier(profile)
     try:
         level = predictor.classify(profile, method)["level"]
     except FileNotFoundError:

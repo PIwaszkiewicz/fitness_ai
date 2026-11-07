@@ -96,14 +96,28 @@ podział 75% / 25% ze stratyfikacją, `seed = 42`.
 Szczegółowe porównanie (macierze pomyłek, wpływ kompletności danych, wiele powtórzeń):
 [EXPERIMENTS.md](EXPERIMENTS.md).
 
-Po ocenie skrypt wybiera klasyfikator z najwyższym F1 makro (przy remisie decyduje accuracy)
-i zapisuje jego nazwę z metrykami w `app/ml/artifacts/best_classifier.json`. Tylko ten
-klasyfikator wyznacza poziom sprawności w aplikacji; przy obecnych wynikach jest to sieć
-neuronowa. Gdy pliku nie ma (modele niewytrenowane), używany jest system regułowy.
+Następnie każdy klasyfikator jest oceniany na tych samych osobach testowych przy 0, 1, …, 5
+pustych odpowiedziach opcjonalnych (staż i cztery testy sprawności; które odpowiedzi znikają,
+jest losowane). Dla każdej liczby braków wybierany jest klasyfikator z najwyższym F1 makro
+(przy remisie decyduje accuracy). Wybór i metryki trafiają do
+`app/ml/artifacts/best_classifier.json`.
+
+| Puste odpowiedzi | System regułowy | Drzewo decyzyjne | Sieć neuronowa | Wybrany  |
+|------------------|-----------------|------------------|----------------|----------|
+| 0                | 0,819           | 0,823            | 0,876          | sieć     |
+| 1                | 0,798           | 0,822            | 0,866          | sieć     |
+| 2                | 0,762           | 0,805            | 0,836          | sieć     |
+| 3                | 0,743           | 0,774            | 0,815          | sieć     |
+| 4                | 0,672           | 0,695            | 0,767          | sieć     |
+| 5                | 0,646           | 0,568            | 0,673          | sieć     |
+
+Aplikacja liczy puste odpowiedzi w profilu użytkownika i klasyfikuje go klasyfikatorem wybranym
+dla tej liczby. Gdy pliku nie ma (modele niewytrenowane), używany jest system regułowy.
 
 ## Użycie w API
 
-`GET /api/v1/profiles/{id}/fitness-level` klasyfikuje najlepszym klasyfikatorem z oceny.
+`GET /api/v1/profiles/{id}/fitness-level` klasyfikuje klasyfikatorem wybranym dla liczby
+pustych odpowiedzi w profilu.
 Parametr `method` (`rules`, `decision_tree`, `mlp`) wymusza inny klasyfikator i służy
 tylko eksperymentom porównawczym; interfejs użytkownika go nie używa.
 Zwraca poziom, prawdopodobieństwa poziomów (dla modeli ML) i kompletność danych profilu.

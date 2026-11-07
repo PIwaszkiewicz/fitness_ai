@@ -48,6 +48,18 @@ def remove_answers(X: pd.DataFrame, missing_rate: float, rng: np.random.Generato
     return X
 
 
+def remove_n_answers(X: pd.DataFrame, n_missing: int, rng: np.random.Generator) -> pd.DataFrame:
+    """Zwraca kopię X, w której każda osoba ma dokładnie n_missing losowo pominiętych odpowiedzi.
+
+    Pozwala ocenić klasyfikatory osobno dla każdej liczby pustych odpowiedzi opcjonalnych.
+    """
+    X = X.copy()
+    for row in range(len(X)):
+        columns = rng.choice(OPTIONAL_FEATURES, size=n_missing, replace=False)
+        X.iloc[row, [X.columns.get_loc(c) for c in columns]] = np.nan
+    return X
+
+
 def generate_dataset(
     n_samples: int = 5000, missing_rate: float = 0.0, seed: int = 42
 ) -> tuple[pd.DataFrame, pd.Series]:

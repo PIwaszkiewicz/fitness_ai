@@ -284,7 +284,7 @@ function renderPlan(plan, probabilities) {
   let html = `<div class="card">
       <h2>Poziom sprawności: <span class="level">${LEVEL_NAMES[plan.fitness_level]}</span></h2>
       <p class="muted">Wyznaczony przez: ${CLASSIFIER_NAMES[plan.classifier]}
-      (najdokładniejszy klasyfikator w ocenie)</p>`;
+      (najdokładniejszy w ocenie przy takiej liczbie pominiętych odpowiedzi)</p>`;
   if (probabilities) {
     html += "<p>Pewność modelu:</p>" + renderProbabilities(probabilities);
   }

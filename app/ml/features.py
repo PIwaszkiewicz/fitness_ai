@@ -48,3 +48,8 @@ def profile_to_features(profile) -> pd.DataFrame:
     }
     # astype(float) zamienia brakujące odpowiedzi (None) na NaN.
     return pd.DataFrame([row], columns=FEATURES).astype(float)
+
+
+def count_missing_answers(profile) -> int:
+    """Liczba pustych odpowiedzi opcjonalnych (0–5) w profilu."""
+    return int(profile_to_features(profile)[OPTIONAL_FEATURES].isna().sum(axis=1).iloc[0])

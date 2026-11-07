@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from app.ml.data_generator import generate_dataset
+from app.ml.data_generator import generate_dataset, remove_n_answers
 from app.ml.features import FEATURES, OPTIONAL_FEATURES, profile_to_features
 from app.ml.models import build_decision_tree, build_mlp
 from app.ml.rule_based import RuleBasedClassifier
@@ -115,3 +115,10 @@ def test_najlepszy_klasyfikator_ma_najwyzsze_f1_makro():
         "mlp": {"accuracy": 0.85, "f1_macro": 0.80},  # remis F1, wyższe accuracy
     }
     assert select_best(metrics) == "mlp"
+
+
+def test_usuwanie_dokladnie_n_odpowiedzi():
+    X, _ = generate_dataset(50)
+    X_missing = remove_n_answers(X, 2, np.random.default_rng(0))
+    assert (X_missing[OPTIONAL_FEATURES].isna().sum(axis=1) == 2).all()
+    assert X_missing.drop(columns=OPTIONAL_FEATURES).notna().all().all()  # dane podstawowe zostają

@@ -8,7 +8,7 @@ from app.ml.data_generator import generate_dataset, remove_n_answers
 from app.ml.features import FEATURES, OPTIONAL_FEATURES, profile_to_features
 from app.ml.models import build_decision_tree, build_mlp
 from app.ml.rule_based import RuleBasedClassifier
-from app.ml.train import select_best, train_and_evaluate
+from app.ml.train import average_runs, select_best, train_and_evaluate
 from app.schemas import UserProfileCreate
 
 LEVELS = {"beginner", "intermediate", "advanced"}
@@ -122,3 +122,10 @@ def test_usuwanie_dokladnie_n_odpowiedzi():
     X_missing = remove_n_answers(X, 2, np.random.default_rng(0))
     assert (X_missing[OPTIONAL_FEATURES].isna().sum(axis=1) == 2).all()
     assert X_missing.drop(columns=OPTIONAL_FEATURES).notna().all().all()  # dane podstawowe zostają
+
+
+def test_usrednianie_powtorzen():
+    runs = [{0: {"mlp": {"f1_macro": 0.8}}}, {0: {"mlp": {"f1_macro": 0.6}}}]
+    averaged = average_runs(runs)[0]["mlp"]
+    assert averaged["f1_macro"] == pytest.approx(0.7)
+    assert averaged["f1_macro_std"] == pytest.approx(0.1)

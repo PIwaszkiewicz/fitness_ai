@@ -25,6 +25,7 @@ venv/
 # Zapisane modele ML
 *.pkl
 *.joblib
+app/ml/artifacts/best_classifier.json
 
 # Wyniki śledzenia eksperymentów (MLflow)
 mlruns/

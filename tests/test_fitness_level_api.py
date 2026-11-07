@@ -1,5 +1,7 @@
 """Testy endpointu klasyfikacji sprawności profilu."""
 
+import json
+
 import pytest
 
 from app.ml import predictor
@@ -60,3 +62,21 @@ def test_nieznana_metoda_zwraca_422(client, profile_id):
 
 def test_nieistniejacy_profil_zwraca_404(client):
     assert client.get(url(999), params={"method": "rules"}).status_code == 404
+
+
+OPTIONAL_ANSWERS = ["training_experience", "pushups", "squats", "plank_seconds", "resting_heart_rate"]
+BEST = {"0": "decision_tree", "1": "mlp", "2": "mlp", "3": "mlp", "4": "mlp", "5": "rules"}
+
+
+@pytest.mark.parametrize("n_missing", range(6))
+def test_klasyfikator_zalezy_od_liczby_pustych_odpowiedzi(client, trained_models, n_missing):
+    predictor.best_classifier_path().write_text(json.dumps({"best_by_missing_answers": BEST}))
+    skipped = OPTIONAL_ANSWERS[:n_missing]
+    answers = {key: value for key, value in PROFILE.items() if key not in skipped}
+    profile_id = client.post("/api/v1/profiles", json=answers).json()["id"]
+    assert client.get(url(profile_id)).json()["method"] == BEST[str(n_missing)]
+
+
+def test_bez_oceny_modeli_uzywany_jest_system_regulowy(client, profile_id, tmp_path, monkeypatch):
+    monkeypatch.setattr(predictor, "ARTIFACTS_DIR", tmp_path)  # brak best_classifier.json
+    assert client.get(url(profile_id)).json()["method"] == "rules"

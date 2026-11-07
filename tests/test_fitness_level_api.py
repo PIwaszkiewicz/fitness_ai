@@ -1,5 +1,7 @@
 """Testy endpointu klasyfikacji sprawności profilu."""
 
+import json
+
 import pytest
 
 from app.ml import predictor
@@ -60,3 +62,15 @@ def test_nieznana_metoda_zwraca_422(client, profile_id):
 
 def test_nieistniejacy_profil_zwraca_404(client):
     assert client.get(url(999), params={"method": "rules"}).status_code == 404
+
+
+def test_bez_parametru_uzywany_jest_najlepszy_klasyfikator(client, profile_id, trained_models):
+    best_file = predictor.best_classifier_path()
+    best_file.write_text(json.dumps({"name": "decision_tree"}))
+    result = client.get(url(profile_id)).json()
+    assert result["method"] == "decision_tree"
+
+
+def test_bez_oceny_modeli_uzywany_jest_system_regulowy(client, profile_id, tmp_path, monkeypatch):
+    monkeypatch.setattr(predictor, "ARTIFACTS_DIR", tmp_path)  # brak best_classifier.json
+    assert client.get(url(profile_id)).json()["method"] == "rules"

@@ -11,8 +11,13 @@ router = APIRouter(prefix="/profiles", tags=["Klasyfikacja sprawności"])
 
 
 @router.get("/{profile_id}/fitness-level", response_model=FitnessLevelResult)
-def get_fitness_level(profile: ProfileFromPath, method: ClassifierName = ClassifierName.MLP):
-    """Klasyfikuje poziom sprawności profilu. Parametr method wybiera klasyfikator."""
+def get_fitness_level(profile: ProfileFromPath, method: ClassifierName | None = None):
+    """Klasyfikuje poziom sprawności profilu najlepszym klasyfikatorem z oceny.
+
+    Parametr method wymusza inny klasyfikator; służy wyłącznie do eksperymentów porównawczych.
+    """
+    if method is None:
+        method = predictor.best_classifier()
     try:
         result = predictor.classify(profile, method)
     except FileNotFoundError:

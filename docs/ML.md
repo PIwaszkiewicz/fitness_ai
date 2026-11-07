@@ -96,9 +96,16 @@ podział 75% / 25% ze stratyfikacją, `seed = 42`.
 Szczegółowe porównanie (macierze pomyłek, wpływ kompletności danych, wiele powtórzeń):
 [EXPERIMENTS.md](EXPERIMENTS.md).
 
+Po ocenie skrypt wybiera klasyfikator z najwyższym F1 makro (przy remisie decyduje accuracy)
+i zapisuje jego nazwę z metrykami w `app/ml/artifacts/best_classifier.json`. Tylko ten
+klasyfikator wyznacza poziom sprawności w aplikacji; przy obecnych wynikach jest to sieć
+neuronowa. Gdy pliku nie ma (modele niewytrenowane), używany jest system regułowy.
+
 ## Użycie w API
 
-`GET /api/v1/profiles/{id}/fitness-level?method=mlp` (`rules`, `decision_tree`, `mlp`).
+`GET /api/v1/profiles/{id}/fitness-level` klasyfikuje najlepszym klasyfikatorem z oceny.
+Parametr `method` (`rules`, `decision_tree`, `mlp`) wymusza inny klasyfikator i służy
+tylko eksperymentom porównawczym; interfejs użytkownika go nie używa.
 Zwraca poziom, prawdopodobieństwa poziomów (dla modeli ML) i kompletność danych profilu.
 Modele są wczytywane z `app/ml/artifacts/` przy pierwszym użyciu i zapamiętywane w pamięci.
 Gdy plik modelu nie istnieje, endpoint zwraca 503. System regułowy działa zawsze.

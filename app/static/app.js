@@ -30,7 +30,6 @@ let questions = []; // definicja pytań pobrana z API
 let profileId = null; // id profilu zapisanego po wysłaniu kwestionariusza
 
 const form = document.getElementById("questionnaire-form");
-const classifierSelect = document.getElementById("classifier");
 
 // ---------- Komunikacja z API ----------
 
@@ -281,13 +280,11 @@ function renderDay(day) {
     </div>`;
 }
 
-function renderPlan(plan, probabilities, requestedMethod) {
+function renderPlan(plan, probabilities) {
   let html = `<div class="card">
       <h2>Poziom sprawności: <span class="level">${LEVEL_NAMES[plan.fitness_level]}</span></h2>
-      <p class="muted">Wyznaczony przez: ${CLASSIFIER_NAMES[plan.classifier]}</p>`;
-  if (plan.classifier !== requestedMethod) {
-    html += '<p class="muted">Wybrany model nie jest wytrenowany, dlatego użyto systemu regułowego.</p>';
-  }
+      <p class="muted">Wyznaczony przez: ${CLASSIFIER_NAMES[plan.classifier]}
+      (najdokładniejszy klasyfikator w ocenie)</p>`;
   if (probabilities) {
     html += "<p>Pewność modelu:</p>" + renderProbabilities(probabilities);
   }
@@ -307,20 +304,20 @@ function renderPlan(plan, probabilities, requestedMethod) {
   document.getElementById("plan").innerHTML = html;
 }
 
-// Pobiera plan wybranym klasyfikatorem. Pewność modelu (prawdopodobieństwa) jest dostępna
-// tylko dla modeli ML, więc pobieramy ją, gdy plan nie powstał z systemu regułowego.
+// Pobiera plan. Poziom wyznacza serwer najlepszym klasyfikatorem z oceny. Pewność modelu
+// (prawdopodobieństwa) jest dostępna tylko dla modeli ML, więc pobieramy ją, gdy plan
+// nie powstał z systemu regułowego.
 async function loadPlan() {
-  const method = classifierSelect.value;
   const planBox = document.getElementById("plan");
   planBox.innerHTML = '<p class="muted">Wczytywanie planu…</p>';
   try {
-    const plan = await request(`/profiles/${profileId}/plan?method=${method}`);
+    const plan = await request(`/profiles/${profileId}/plan`);
     let probabilities = null;
     if (plan.classifier !== "rules") {
       const level = await request(`/profiles/${profileId}/fitness-level?method=${plan.classifier}`);
       probabilities = level.probabilities;
     }
-    renderPlan(plan, probabilities, method);
+    renderPlan(plan, probabilities);
   } catch (error) {
     planBox.innerHTML = `<div class="alert alert-error">${escapeHtml(error.message)}</div>`;
   }
@@ -356,8 +353,6 @@ form.addEventListener("submit", async (event) => {
     button.disabled = false;
   }
 });
-
-classifierSelect.addEventListener("change", loadPlan);
 
 document.getElementById("restart").addEventListener("click", () => {
   form.reset();

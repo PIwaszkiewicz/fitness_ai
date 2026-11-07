@@ -2,8 +2,11 @@
 
 Wytrenowane modele są wczytywane z dysku przy pierwszym użyciu i zapamiętywane
 (lru_cache), więc kolejne żądania nie czytają pliku ponownie.
+Aplikacja używa jednego klasyfikatora: tego, który wypadł najlepiej w ocenie
+podczas uczenia (app/ml/train.py zapisuje jego nazwę w best_classifier.json).
 """
 
+import json
 from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
@@ -27,6 +30,23 @@ class ClassifierName(StrEnum):
 def model_path(name: str) -> Path:
     """Ścieżka pliku z wytrenowanym modelem."""
     return ARTIFACTS_DIR / f"{name}.joblib"
+
+
+def best_classifier_path() -> Path:
+    """Ścieżka pliku z nazwą i metrykami najlepszego klasyfikatora."""
+    return ARTIFACTS_DIR / "best_classifier.json"
+
+
+def best_classifier() -> ClassifierName:
+    """Klasyfikator wybrany w ocenie jako najdokładniejszy.
+
+    Gdy modele nie zostały jeszcze wytrenowane (brak pliku), używany jest
+    system regułowy, bo działa bez uczenia.
+    """
+    path = best_classifier_path()
+    if not path.exists():
+        return ClassifierName.RULES
+    return ClassifierName(json.loads(path.read_text())["name"])
 
 
 @lru_cache

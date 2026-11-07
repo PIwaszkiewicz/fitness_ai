@@ -2,7 +2,11 @@
 
 Uruchomienie: python -m app.ml.train
 Wytrenowane modele trafiają do app/ml/artifacts/ i są wczytywane przez API.
+Klasyfikator z najwyższym F1 makro na zbiorze testowym jest zapisywany jako najlepszy
+(best_classifier.json) i tylko on wyznacza poziom sprawności w aplikacji.
 """
+
+import json
 
 import joblib
 from sklearn.metrics import accuracy_score, f1_score
@@ -10,7 +14,7 @@ from sklearn.model_selection import train_test_split
 
 from app.ml.data_generator import generate_dataset
 from app.ml.models import build_decision_tree, build_mlp
-from app.ml.predictor import ARTIFACTS_DIR, model_path
+from app.ml.predictor import ARTIFACTS_DIR, best_classifier_path, model_path
 from app.ml.rule_based import RuleBasedClassifier
 
 SEED = 42
@@ -46,15 +50,26 @@ def train_and_evaluate(
     return classifiers, metrics
 
 
+def select_best(metrics: dict) -> str:
+    """Zwraca nazwę klasyfikatora z najwyższym F1 makro (przy remisie decyduje accuracy).
+
+    F1 makro jest kryterium głównym, bo każdy poziom sprawności liczy się w nim tak samo.
+    """
+    return max(metrics, key=lambda name: (metrics[name]["f1_macro"], metrics[name]["accuracy"]))
+
+
 def main() -> None:
     classifiers, metrics = train_and_evaluate()
     ARTIFACTS_DIR.mkdir(exist_ok=True)
     for name in ("decision_tree", "mlp"):
         joblib.dump(classifiers[name], model_path(name))
+    best = select_best(metrics)
+    best_classifier_path().write_text(json.dumps({"name": best, "metrics": metrics}, indent=2))
 
     print(f"{'Klasyfikator':<15}{'Accuracy':>10}{'F1 makro':>10}")
     for name, values in metrics.items():
         print(f"{name:<15}{values['accuracy']:>10.3f}{values['f1_macro']:>10.3f}")
+    print(f"Najlepszy klasyfikator: {best}")
     print(f"Zapisano modele w {ARTIFACTS_DIR}")
 
 

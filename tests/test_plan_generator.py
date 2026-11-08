@@ -7,6 +7,8 @@ from app.models.enums import FitnessLevel
 from app.schemas import ExerciseRead, UserProfileRead
 from app.seed import load_atlas
 from app.services.plan_generator import (
+    INTERVAL_CONSULTATION_TIP,
+    WEIGHT_LOSS_TIPS,
     exercises_per_session,
     generate_plan,
     is_safe,
@@ -126,3 +128,20 @@ def test_pusty_atlas_daje_ostrzezenie():
     plan = plan_for(exercises=[])
     assert all(day.exercises == [] for day in plan.days)
     assert any("Brak ćwiczeń" in warning for warning in plan.warnings)
+
+
+
+def test_wskazowki_redukcyjne_tylko_dla_celu_redukcji():
+    weight_loss = plan_for(training_goal="weight_loss")
+    assert all(tip in weight_loss.progression for tip in WEIGHT_LOSS_TIPS)
+    strength = plan_for(training_goal="strength")
+    assert not any(tip in strength.progression for tip in WEIGHT_LOSS_TIPS)
+
+
+@pytest.mark.parametrize(
+    ("limitations", "expected"),
+    [([], False), (["knee"], False), (["hypertension"], True), (["heart_condition"], True)],
+)
+def test_konsultacja_przed_interwalami_przy_chorobach_krazenia(limitations, expected):
+    plan = plan_for(training_goal="weight_loss", limitations=limitations)
+    assert (INTERVAL_CONSULTATION_TIP in plan.progression) == expected

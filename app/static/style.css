@@ -196,13 +196,6 @@ button {
   background: var(--color-primary);
 }
 
-.classifier {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-}
-
 /* Tabela ćwiczeń w dniu treningowym */
 table {
   width: 100%;

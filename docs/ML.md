@@ -84,7 +84,7 @@ Ustawienia dobrano walidacją krzyżową (`experiments/tuning.py`, opis w
 
 ## Uczenie i wyniki wstępne
 
-`python -m app.ml.train`: 5000 osób, 20% brakujących odpowiedzi opcjonalnych,
+`python -m app.ml.train` (ok. 5 s): 5000 osób, 20% brakujących odpowiedzi opcjonalnych,
 podział 75% / 25% ze stratyfikacją, `seed = 42`.
 
 | Klasyfikator       | Accuracy | F1 makro |
@@ -96,9 +96,37 @@ podział 75% / 25% ze stratyfikacją, `seed = 42`.
 Szczegółowe porównanie (macierze pomyłek, wpływ kompletności danych, wiele powtórzeń):
 [EXPERIMENTS.md](EXPERIMENTS.md).
 
+Następnie każdy klasyfikator jest oceniany na osobach testowych przy 0, 1, …, 5 pustych
+odpowiedziach opcjonalnych (staż i cztery testy sprawności; które odpowiedzi znikają, jest
+losowane). Ocena jest powtarzana 5 razy na różnie wylosowanych danych (`SELECTION_SEEDS`:
+nowe osoby, nowy podział, modele uczone od nowa), a wyniki są uśredniane. Pojedynczy podział
+nie wystarcza: przy 5 pustych odpowiedziach zwycięzca zmieniał się zależnie od losowania.
+Dla każdej liczby braków wybierany jest klasyfikator z najwyższym średnim F1 makro
+(przy remisie decyduje accuracy). Wdrażane są modele z pierwszego powtórzenia (`seed = 42`).
+Wybór i metryki trafiają do `app/ml/artifacts/best_classifier.json`.
+
+| Puste odpowiedzi | System regułowy | Drzewo decyzyjne | Sieć neuronowa | Wybrany  |
+|------------------|-----------------|------------------|----------------|----------|
+| 0                | 0,805 ± 0,010   | 0,823 ± 0,012    | 0,875 ± 0,006  | sieć     |
+| 1                | 0,791 ± 0,005   | 0,811 ± 0,009    | 0,862 ± 0,006  | sieć     |
+| 2                | 0,760 ± 0,012   | 0,792 ± 0,016    | 0,841 ± 0,005  | sieć     |
+| 3                | 0,714 ± 0,019   | 0,734 ± 0,024    | 0,813 ± 0,007  | sieć     |
+| 4                | 0,663 ± 0,008   | 0,626 ± 0,070    | 0,761 ± 0,004  | sieć     |
+| 5                | 0,654 ± 0,008   | 0,392 ± 0,201    | 0,650 ± 0,038  | reguły   |
+
+Przy samych danych podstawowych (5 pustych) system regułowy i sieć różnią się nieznacznie,
+ale reguły dają wynik stabilniejszy (mniejsze odchylenie), co jest zgodne z eksperymentem 2
+w [EXPERIMENTS.md](EXPERIMENTS.md#eksperyment-2-wpływ-kompletności-danych).
+
+Aplikacja liczy puste odpowiedzi w profilu użytkownika i klasyfikuje go klasyfikatorem wybranym
+dla tej liczby. Gdy pliku nie ma (modele niewytrenowane), używany jest system regułowy.
+
 ## Użycie w API
 
-`GET /api/v1/profiles/{id}/fitness-level?method=mlp` (`rules`, `decision_tree`, `mlp`).
+`GET /api/v1/profiles/{id}/fitness-level` klasyfikuje klasyfikatorem wybranym dla liczby
+pustych odpowiedzi w profilu.
+Parametr `method` (`rules`, `decision_tree`, `mlp`) wymusza inny klasyfikator i służy
+tylko eksperymentom porównawczym; interfejs użytkownika go nie używa.
 Zwraca poziom, prawdopodobieństwa poziomów (dla modeli ML) i kompletność danych profilu.
 Modele są wczytywane z `app/ml/artifacts/` przy pierwszym użyciu i zapamiętywane w pamięci.
 Gdy plik modelu nie istnieje, endpoint zwraca 503. System regułowy działa zawsze.

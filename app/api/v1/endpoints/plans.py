@@ -15,13 +15,17 @@ router = APIRouter(prefix="/profiles", tags=["Plan treningowy"])
 
 @router.get("/{profile_id}/plan", response_model=TrainingPlan)
 def get_training_plan(
-    profile: ProfileFromPath, db: DbSession, method: ClassifierName = ClassifierName.MLP
+    profile: ProfileFromPath, db: DbSession, method: ClassifierName | None = None
 ):
     """Klasyfikuje poziom sprawności i buduje plan z bezpiecznych ćwiczeń atlasu.
 
-    Gdy wybrany model ML nie jest wytrenowany, poziom wyznacza system regułowy
+    Poziom wyznacza klasyfikator najlepszy w ocenie przy liczbie
+    pustych odpowiedzi w profilu (method służy tylko eksperymentom).
+    Gdy model ML nie jest wytrenowany, poziom wyznacza system regułowy
     (pole classifier w odpowiedzi mówi, który klasyfikator został użyty).
     """
+    if method is None:
+        method = predictor.best_classifier(profile)
     try:
         level = predictor.classify(profile, method)["level"]
     except FileNotFoundError:

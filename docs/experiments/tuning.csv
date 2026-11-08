@@ -25,8 +25,8 @@ decision_tree,"max_depth=4, min_samples_leaf=50",0.7758,0.0171,23,False,False
 decision_tree,"max_depth=3, min_samples_leaf=50",0.7699,0.0112,24,False,False
 mlp,"alpha=0.01, hidden_layer_sizes=(64, 32)",0.8614,0.014,1,False,True
 mlp,"alpha=0.001, hidden_layer_sizes=(64, 32)",0.8611,0.0136,2,False,True
-mlp,"alpha=0.0001, hidden_layer_sizes=(64, 32)",0.8608,0.0132,3,False,True
-mlp,"alpha=0.0001, hidden_layer_sizes=(32,)",0.8533,0.009,4,True,True
+mlp,"alpha=0.0001, hidden_layer_sizes=(64, 32)",0.8608,0.0132,3,True,True
+mlp,"alpha=0.0001, hidden_layer_sizes=(32,)",0.8533,0.009,4,False,True
 mlp,"alpha=0.001, hidden_layer_sizes=(32,)",0.8531,0.0088,5,False,True
 mlp,"alpha=0.01, hidden_layer_sizes=(32,)",0.8531,0.0088,5,False,True
 mlp,"alpha=0.001, hidden_layer_sizes=(32, 16)",0.8474,0.0368,7,False,True

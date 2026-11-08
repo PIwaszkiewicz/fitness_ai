@@ -122,8 +122,10 @@ Ograniczenia użytkownika i przeciwwskazania ćwiczeń korzystają z tego samego
 
 Zakresy walidacji danych profilu: wiek 16–100 lat, wzrost 120–230 cm, waga 30–300 kg.
 
-Tabele tworzy `create_all`, który nie modyfikuje istniejących tabel. Po zmianie modeli
-lokalną bazę trzeba odtworzyć: usunąć plik `fitness_ai.db` i ponownie uruchomić `python -m app.seed`.
+Tabele tworzy `create_all`, który nie modyfikuje istniejących tabel. Dlatego przy starcie serwera
+`add_missing_columns` (`app/core/database.py`) dodaje do istniejących tabel kolumny nowych pól
+modelu, np. po dodaniu pytań o ciężary. To prosta migracja wystarczająca dla pól opcjonalnych;
+zmiana typu lub usunięcie kolumny wymagałyby narzędzia migracji (np. Alembic).
 
 ## Frontend
 
@@ -135,7 +137,8 @@ i bez etapu budowania. FastAPI serwuje ją razem z API, więc strona i API mają
 2. Przeglądarka sprawdza pola wymagane i zakresy (`required`, `min`, `max`) przed wysłaniem.
    Błędy walidacji zwrócone przez API (422) są pokazywane przy nazwach pytań.
 3. Po wysłaniu (`POST /api/v1/questionnaire`) strona pokazuje ostrzeżenia, kompletność danych,
-   poziom sprawności z pewnością modelu i tygodniowy plan. Klasyfikator można zmienić z listy.
+   poziom sprawności z pewnością modelu i tygodniowy plan. Klasyfikator dobiera serwer
+   (najdokładniejszy w ocenie przy danej liczbie pustych odpowiedzi, opis w [ML.md](ML.md)).
 4. Każdy tekst z API jest wstawiany do strony po zamianie znaków specjalnych HTML (ochrona przed XSS).
 
 ## Kwestionariusz
@@ -148,14 +151,25 @@ Frontend buduje z nich formularz, więc zmiana pytań nie wymaga zmian w interfe
 | Dane podstawowe        | wiek, płeć, wzrost, waga, cel, aktywność                          | tak      |
 | Dane podstawowe        | staż treningowy                                                   | nie      |
 | Zdrowie i ograniczenia | kontuzje i schorzenia, poziom bólu*, zgoda lekarza**              | nie      |
-| Testy sprawności       | pompki, przysiady w 1 min, deska, tętno spoczynkowe               | nie      |
+| Testy sprawności       | pompki (z wariantem: klasyczne / z kolan), przysiady w 1 min, deska, tętno spoczynkowe | nie |
+| Ćwiczenia z ciężarami  | czy trenujesz z ciężarami; ostatnia seria (ciężar i powtórzenia) w 5 ćwiczeniach*** | nie |
 | Preferencje            | dni treningowe w tygodniu, długość treningu, dostępny sprzęt      | nie      |
 
-\* tylko przy zgłoszonych ograniczeniach, \*\* tylko przy nadciśnieniu lub chorobie serca.
+\* tylko przy zgłoszonych ograniczeniach, \*\* tylko przy nadciśnieniu lub chorobie serca,
+\*\*\* tylko przy odpowiedzi „tak” na pytanie o trening z ciężarami.
+
+Testy z masą ciała widzą wszyscy, a pytania o ciężary dodatkowo osoby trenujące z ciężarami:
+przysiad ze sztangą, martwy ciąg, wyciskanie sztangi leżąc, wyciskanie nad głowę i podciąganie
+(z obciążeniem dodatkowym, także 0 kg). Użytkownik nie testuje ciężaru maksymalnego (1RM),
+tylko podaje ostatnią serię roboczą, a serwer szacuje 1RM wzorem Epleya:
+1RM = ciężar · (1 + powtórzenia / 30) (`app/services/strength.py`). Wzór jest dokładny dla serii
+do ok. 10 powtórzeń, dlatego przyjmowane jest 1–10 powtórzeń. Przy podciąganiu 1RM obejmuje masę
+ciała. Ciężar podaje się zawsze razem z liczbą powtórzeń.
 Odpowiedź na pytanie, którego warunek nie jest spełniony, jest odrzucana (422).
 
 **Kompletność danych** (`data_completeness`, 0–100) to procent pytań opcjonalnych, na które
-odpowiedziano, liczony tylko spośród pytań widocznych dla danego użytkownika.
+odpowiedziano, liczony tylko spośród pytań widocznych dla danego użytkownika. Wariant pompek
+się nie liczy, bo tylko doprecyzowuje wynik pompek.
 
 **Ostrzeżenia zdrowotne** nie blokują zapisu profilu, a wskazują potrzebę konsultacji:
 choroba układu krążenia bez zgody lekarza, ból od 7/10, tętno spoczynkowe powyżej 100/min.

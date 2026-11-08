@@ -11,14 +11,27 @@ from app.schemas.questionnaire import Question
 
 # Lista ograniczeń nie wchodzi do wskaźnika: pusta lista oznacza „brak ograniczeń”,
 # a nie brak odpowiedzi, więc nie da się odróżnić pominięcia pytania.
-SCORED_QUESTIONS = [q for q in QUESTIONS if not q.required and q.id != "limitations"]
+# Wariant pompek jest tylko doprecyzowaniem wyniku pompek, a nie osobną informacją.
+NOT_SCORED = {"limitations", "pushup_variant"}
+SCORED_QUESTIONS = [q for q in QUESTIONS if not q.required and q.id not in NOT_SCORED]
+
+
+def as_values(answer) -> list[str]:
+    """Zamienia odpowiedź na listę tekstów do porównania z warunkiem show_if."""
+    if answer is None:
+        return []
+    if isinstance(answer, list):
+        return [str(value) for value in answer]
+    if isinstance(answer, bool):
+        return ["true" if answer else "false"]
+    return [str(answer)]
 
 
 def is_question_shown(question: Question, answers: dict) -> bool:
     """Sprawdza, czy pytanie było widoczne przy danych odpowiedziach (warunek show_if)."""
     if question.show_if is None:
         return True
-    selected = answers.get(question.show_if.field) or []
+    selected = as_values(answers.get(question.show_if.field))
     return any(value in question.show_if.any_of for value in selected)
 
 

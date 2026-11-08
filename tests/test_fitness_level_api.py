@@ -36,7 +36,7 @@ def test_system_regulowy_dziala_bez_wytrenowanych_modeli(client, profile_id):
     result = response.json()
     assert result["level"] == "advanced"
     assert result["probabilities"] is None
-    assert result["data_completeness"] == 62  # 5 z 8 pytań opcjonalnych
+    assert result["data_completeness"] == 56  # 5 z 9 pytań opcjonalnych
 
 
 @pytest.mark.parametrize("method", ["decision_tree", "mlp"])

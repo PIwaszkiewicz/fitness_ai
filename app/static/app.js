@@ -161,12 +161,14 @@ function readValue(question) {
   return question.type === "choice" ? value : Number(value);
 }
 
-// Sprawdza warunek show_if: czy pole z warunku zawiera którąś z wymaganych wartości.
+// Sprawdza warunek show_if: czy odpowiedź na pole z warunku to jedna z wymaganych wartości.
+// Odpowiedź pojedyncza (np. tak/nie) zamieniana jest na listę z jednym tekstem: true -> ["true"].
 function isShown(question) {
   if (!question.show_if) {
     return true;
   }
-  const selected = readValue(findQuestion(question.show_if.field)) || [];
+  const answer = readValue(findQuestion(question.show_if.field));
+  const selected = answer === null ? [] : [].concat(answer).map(String);
   return selected.some((value) => question.show_if.any_of.includes(value));
 }
 

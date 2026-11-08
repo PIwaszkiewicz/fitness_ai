@@ -54,6 +54,13 @@ class Limitation(StrEnum):
     HEART_CONDITION = "heart_condition"
 
 
+class PushupVariant(StrEnum):
+    """Wariant pompek w teście: z kolan są łatwiejsze, więc wynik liczy się inaczej."""
+
+    CLASSIC = "classic"
+    KNEES = "knees"
+
+
 # Ograniczenia układu krążenia, przy których wysiłek wymaga zgody lekarza.
 CARDIOVASCULAR_LIMITATIONS = [Limitation.HYPERTENSION, Limitation.HEART_CONDITION]
 

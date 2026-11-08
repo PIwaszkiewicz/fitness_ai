@@ -1,9 +1,10 @@
 """Testy warstwy bazy danych: zapis, odczyt i ograniczenia tabel."""
 
 import pytest
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.exc import IntegrityError
 
-from app.core.database import get_db
+from app.core.database import Base, add_missing_columns, get_db
 from app.models import Exercise, UserProfile
 from app.schemas import ExerciseCreate, UserProfileCreate, UserProfileRead
 
@@ -81,3 +82,17 @@ def test_get_db_zwraca_i_zamyka_sesje():
     session = next(generator)
     assert session.is_active
     generator.close()  # symuluje zakończenie żądania, wykonuje blok finally
+
+
+def test_migracja_dodaje_brakujace_kolumny(tmp_path):
+    # Baza z tabelą profili sprzed dodania pytań o ciężary (bez nowych kolumn).
+    engine = create_engine(f"sqlite:///{tmp_path / 'old.db'}")
+    with engine.begin() as connection:
+        connection.execute(text("CREATE TABLE user_profiles (id INTEGER PRIMARY KEY, age INTEGER)"))
+    Base.metadata.create_all(bind=engine)  # istniejącej tabeli nie zmienia
+    added = add_missing_columns(engine)
+    columns = {column["name"] for column in inspect(engine).get_columns("user_profiles")}
+    assert "user_profiles.squat_kg" in added
+    assert {"squat_kg", "lifts_weights", "pushup_variant"} <= columns
+    assert add_missing_columns(engine) == []  # ponowne uruchomienie niczego nie zmienia
+    engine.dispose()

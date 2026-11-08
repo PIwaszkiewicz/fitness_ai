@@ -28,13 +28,14 @@ from fastapi.staticfiles import StaticFiles
 from app import models  # noqa: F401  (rejestruje tabele w Base.metadata)
 from app.api.v1.router import api_router
 from app.core.config import settings
-from app.core.database import Base, engine
+from app.core.database import Base, add_missing_columns, engine
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Kod wykonywany przy starcie serwera: tworzy brakujące tabele w bazie."""
+    """Kod wykonywany przy starcie serwera: tworzy brakujące tabele i kolumny w bazie."""
     Base.metadata.create_all(bind=engine)
+    add_missing_columns(engine)
     yield
 
 

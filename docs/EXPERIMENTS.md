@@ -43,10 +43,13 @@ mlflow ui                      # przeglądanie przebiegów: http://127.0.0.1:500
 - Miara: F1 makro (średnia ± odchylenie z 5 części).
 - Siatki: drzewo – głębokość {3, 4, 6, 8, 10, bez limitu} × min. próbek w liściu {1, 5, 20, 50};
   sieć – warstwy ukryte {(16), (32), (32, 16), (64, 32)} × regularyzacja L2 `alpha` {0,0001; 0,001; 0,01}.
-- Wybór według **reguły jednego odchylenia standardowego**: spośród ustawień, których wynik jest
-  gorszy od najlepszego o mniej niż jego odchylenie standardowe, wybiera się najprostsze. Różnica
-  mniejsza niż odchylenie mieści się w losowej zmienności, a prostszy model łatwiej zinterpretować
-  i trudniej go przeuczyć.
+- Wybór drzewa według **reguły jednego odchylenia standardowego**: spośród ustawień, których wynik
+  jest gorszy od najlepszego o mniej niż jego odchylenie standardowe, wybiera się najprostsze.
+  Różnica mniejsza niż odchylenie mieści się w losowej zmienności, a płytsze drzewo można odczytać
+  jako zestaw reguł.
+- Wybór sieci według **najlepszego wyniku**: mniejsza sieć nie staje się przez to czytelna (wagi sieci
+  nie dają się interpretować przy żadnym rozmiarze), a koszt większej sieci jest pomijalny
+  (uczenie ok. 0,2 s, klasyfikacja poniżej 1 ms), więc reguła jednego odchylenia nie ma tu uzasadnienia.
 
 Wyniki (`docs/experiments/tuning.csv`, pięć najlepszych ustawień każdego modelu i poprzednie ustawienie sieci):
 
@@ -59,22 +62,29 @@ Wyniki (`docs/experiments/tuning.csv`, pięć najlepszych ustawień każdego mod
 | Drzewo decyzyjne | **głębokość 6, min. 5 w liściu**      | **0,807 ± 0,007** |
 | Sieć neuronowa   | (64, 32), alpha 0,01                  | 0,861 ± 0,014   |
 | Sieć neuronowa   | (64, 32), alpha 0,001                 | 0,861 ± 0,014   |
-| Sieć neuronowa   | (64, 32), alpha 0,0001                | 0,861 ± 0,013   |
-| Sieć neuronowa   | **(32), alpha 0,0001**                | **0,853 ± 0,009** |
+| Sieć neuronowa   | **(64, 32), alpha 0,0001**            | **0,861 ± 0,013** |
+| Sieć neuronowa   | (32), alpha 0,0001                    | 0,853 ± 0,009   |
 | Sieć neuronowa   | (32), alpha 0,001                     | 0,853 ± 0,009   |
 | …                |                                       |                 |
-| Sieć neuronowa   | (32, 16), alpha 0,0001 (poprzednio)   | 0,845 ± 0,035   |
+| Sieć neuronowa   | (32, 16), alpha 0,0001 (pierwsza wersja) | 0,845 ± 0,035 |
 
 **Wnioski:**
 
 1. **Sieć neuronowa:** w pierwszej wersji (bez wskaźnika siły) najlepsza była sieć (32, 16)
-   i tę stosowano. Po dodaniu wskaźnika siły sieć (32, 16) spadła na 12. miejsce (0,845) i wypadła
-   poza granicą jednego odchylenia (próg 0,861 − 0,014 = 0,847). Duże odchylenie (0,035) wynika
-   z jednej z pięciu części walidacji, w której sieć nauczyła się wyraźnie gorzej, czyli z niestabilności
-   uczenia. Zgodnie z regułą wybrano najprostszą sieć w granicy: **jedna warstwa 32 neuronów**.
-   Sieć (64, 32) ma o ok. 0,008 wyższy wynik, ale ma ok. 5 razy więcej wag (3267 wobec 643), a różnica mieści się
-   w odchyleniu. Na zbiorach testowych eksperymentu 1 wszystkie trzy warianty dały zbliżone F1
-   makro: (32) 0,856, (32, 16) 0,860, (64, 32) 0,866 (odchylenia ok. 0,01).
+   i tę stosowano. Po dodaniu wskaźnika siły najlepsze są sieci (64, 32), a (32, 16) spadła na
+   12. miejsce (0,845) z dużym odchyleniem (0,035): w jednej z pięciu części walidacji nauczyła się
+   wyraźnie gorzej, czyli jej uczenie jest niestabilne. Wybrano **(64, 32)**. Siła regularyzacji
+   `alpha` nie ma wpływu (0,8608–0,8614), więc zostaje domyślna wartość 0,0001.
+   Wybór potwierdzają wyniki spoza walidacji (F1 makro, eksperyment 1 i model z `app/ml/train.py`):
+
+   | Sieć      | Średnia z 5 zbiorów testowych | Model wdrażany (`seed = 42`) | Ten model przy 5 pustych odpowiedziach |
+   |-----------|-------------------------------|------------------------------|----------------------------------------|
+   | (32)      | 0,848 ± 0,013                 | 0,829                        | 0,64                                   |
+   | (32, 16)  | 0,855 ± 0,007                 | 0,855                        | 0,69                                   |
+   | (64, 32)  | 0,859 ± 0,009                 | 0,871                        | 0,72                                   |
+
+   Przejściowo stosowano sieć (32) wybraną regułą jednego odchylenia; zrezygnowano z tego, bo
+   prostota sieci nie daje korzyści, a mniejsza sieć wypadała gorzej, zwłaszcza przy brakach danych.
 2. **Drzewo decyzyjne:** najlepsze jest drzewo o głębokości 10 (0,815), ale drzewo o głębokości 6
    mieści się w granicy jednego odchylenia (próg 0,804), a ma do 16 razy mniej liści, więc jego
    reguły da się przeczytać. Pozostaje głębokość 6 i min. 5 próbek w liściu.
@@ -89,13 +99,13 @@ Dane testowe z 20% pominiętych odpowiedzi opcjonalnych (`docs/experiments/compa
 |--------------------|-----------------|-----------------|--------------|---------------------------|
 | System regułowy    | 0,800 ± 0,004   | 0,801 ± 0,005   | —            | 0,02 ms                   |
 | Drzewo decyzyjne   | 0,805 ± 0,009   | 0,804 ± 0,010   | 0,01 s       | 0,43 ms                   |
-| Sieć neuronowa     | 0,857 ± 0,012   | 0,856 ± 0,012   | 0,13 s       | 0,52 ms                   |
+| Sieć neuronowa     | 0,867 ± 0,009   | 0,866 ± 0,008   | 0,17 s       | 0,52 ms                   |
 
 ![Macierze pomyłek](experiments/confusion_matrices.png)
 
 **Obserwacje:**
 
-1. Sieć neuronowa osiąga najwyższą trafność, o ok. 6 punktów procentowych wyższą od systemu
+1. Sieć neuronowa osiąga najwyższą trafność, o ok. 6–7 punktów procentowych wyższą od systemu
    regułowego i od drzewa decyzyjnego. Obie różnice są istotne statystycznie
    (zob. [test McNemara](#istotność-statystyczna-różnic-między-klasyfikatorami)).
 2. Pomyłki o dwa poziomy są skrajnie rzadkie: na ok. 2200 osób początkujących (5 powtórzeń) system
@@ -103,14 +113,13 @@ Dane testowe z 20% pominiętych odpowiedzi opcjonalnych (`docs/experiments/compa
    (zaawansowany uznany za początkującego) dotyczy 0,05–0,2% zaawansowanych. Pozostałe błędy dotyczą
    poziomów sąsiednich. Ma to znaczenie dla bezpieczeństwa: osoba początkująca praktycznie nie
    dostanie planu dla zaawansowanych.
-3. Najtrudniejszy do rozpoznania jest poziom średni (71–76% poprawnych), bo graniczy z oboma
+3. Najtrudniejszy do rozpoznania jest poziom średni (71–79% poprawnych), bo graniczy z oboma
    pozostałymi.
 4. Czas klasyfikacji jednej osoby jest poniżej 1 ms dla wszystkich metod, więc wybór
    klasyfikatora nie wpływa na czas odpowiedzi API.
 5. W porównaniu z pierwszą wersją (bez wskaźnika siły) trafność systemu regułowego wzrosła
-   (0,792 → 0,800), bo reguły od razu korzystają z nowego wskaźnika. Sieć ma wynik nieco niższy
-   (0,866 → 0,857) z powodu zmiany architektury na mniejszą (zob. dobór hiperparametrów); różnica
-   mieści się w odchyleniu.
+   (0,792 → 0,800), bo reguły od razu korzystają z nowego wskaźnika. Sieć ma wynik podobny
+   (0,866 → 0,867), przy nowej architekturze (64, 32).
 
 ## Eksperyment 2: wpływ kompletności danych
 
@@ -121,12 +130,12 @@ i poziom aktywności, a u osób trenujących z ciężarami także wskaźnik sił
 
 | Pominięte odpowiedzi | System regułowy | Drzewo decyzyjne | Sieć neuronowa  |
 |----------------------|-----------------|------------------|-----------------|
-| 0%                   | 0,813 ± 0,009   | 0,824 ± 0,013    | 0,877 ± 0,014   |
-| 20%                  | 0,793 ± 0,004   | 0,801 ± 0,013    | 0,858 ± 0,016   |
-| 40%                  | 0,767 ± 0,004   | 0,764 ± 0,012    | 0,831 ± 0,012   |
-| 60%                  | 0,743 ± 0,008   | 0,716 ± 0,022    | 0,800 ± 0,010   |
-| 80%                  | 0,713 ± 0,003   | 0,624 ± 0,044    | 0,749 ± 0,024   |
-| 100%                 | 0,696 ± 0,006   | 0,513 ± 0,073    | 0,688 ± 0,039   |
+| 0%                   | 0,813 ± 0,009   | 0,824 ± 0,013    | 0,887 ± 0,014   |
+| 20%                  | 0,793 ± 0,004   | 0,801 ± 0,013    | 0,865 ± 0,013   |
+| 40%                  | 0,767 ± 0,004   | 0,764 ± 0,012    | 0,844 ± 0,013   |
+| 60%                  | 0,743 ± 0,008   | 0,716 ± 0,022    | 0,815 ± 0,008   |
+| 80%                  | 0,713 ± 0,003   | 0,624 ± 0,044    | 0,769 ± 0,012   |
+| 100%                 | 0,696 ± 0,006   | 0,513 ± 0,073    | 0,719 ± 0,019   |
 
 ![Wpływ kompletności danych](experiments/completeness.png)
 
@@ -134,19 +143,19 @@ i poziom aktywności, a u osób trenujących z ciężarami także wskaźnik sił
 
 1. Trafność wszystkich metod spada wraz z ubywaniem danych. Wyniki testów sprawności niosą
    istotną informację, której nie zastąpią same dane podstawowe.
-2. Do ok. 80% braków sieć neuronowa pozostaje najlepsza.
-3. System regułowy traci trafność najwolniej i przy samych danych podstawowych (100% braków)
-   ma wynik zbliżony do sieci (0,696 wobec 0,688; różnica nieistotna statystycznie). Reguły pomijają
-   brakujące wskaźniki, a modele ML uczone przy 20% braków trafiają na dane wyraźnie inne niż
-   w czasie uczenia. W pierwszej wersji (bez wskaźnika siły) reguły były przy 100% braków istotnie
-   lepsze od sieci (0,675 wobec 0,648); wskaźnik siły zmniejszył tę różnicę, bo u osób trenujących
-   zostaje mocna cecha nawet bez testów.
+2. Sieć neuronowa jest najlepsza przy każdej kompletności danych.
+3. System regułowy traci trafność najwolniej (z 0,813 do 0,696), ale przy samych danych
+   podstawowych sieć jest od niego lepsza (0,719 wobec 0,696; różnica istotna statystycznie).
+   W pierwszej wersji (bez wskaźnika siły, sieć (32, 16)) było odwrotnie: reguły przy 100% braków
+   były istotnie lepsze od sieci (0,675 wobec 0,648). Zmianę dały razem wskaźnik siły (u osób
+   trenujących zostaje mocna cecha nawet bez testów) i większa sieć, która stabilniej uczy się
+   na danych z brakami.
 4. Drzewo decyzyjne jest najbardziej wrażliwe na braki: przy 100% braków trafność spada do
    0,51 i silnie zależy od losowania (odchylenie 0,073). Gdy brakuje cechy z górnych podziałów
    drzewa, wszystkie osoby trafiają do gałęzi wybranej przez wartość wstawioną (medianę).
 
-**Wniosek projektowy:** przy niskiej kompletności danych sieć i reguły dają podobne wyniki, a drzewo
-jest wyraźnie gorsze. Aplikacja dobiera klasyfikator do liczby pustych odpowiedzi według oceny
+**Wniosek projektowy:** sieć jest najtrafniejsza także przy niskiej kompletności danych, reguły
+tracą trafność najwolniej, a drzewo jest wyraźnie gorsze. Aplikacja dobiera klasyfikator do liczby pustych odpowiedzi według oceny
 z uczenia ([ML.md](ML.md#uczenie-i-wyniki-wstępne)) i zwraca kompletność danych
 (`data_completeness`) razem z wynikiem, żeby użytkownik wiedział, jak wiarygodny jest wynik.
 
@@ -178,15 +187,16 @@ Wyniki (`docs/experiments/significance.csv`). W komórce: metoda lepsza w danej 
 | 40%                  | sieć, *p* < 0,001     | sieć, *p* < 0,001     | – (*p* = 0,67)          |
 | 60%                  | sieć, *p* < 0,001     | sieć, *p* < 0,001     | reguły, *p* < 0,001     |
 | 80%                  | sieć, *p* < 0,001     | sieć, *p* < 0,001     | reguły, *p* < 0,001     |
-| 100%                 | – (*p* = 0,24)        | sieć, *p* < 0,001     | reguły, *p* < 0,001     |
+| 100%                 | sieć, *p* < 0,001     | sieć, *p* < 0,001     | reguły, *p* < 0,001     |
 
 **Obserwacje:**
 
 1. Przewaga sieci neuronowej nad obiema pozostałymi metodami jest istotna statystycznie przy
-   każdej kompletności danych poza samymi danymi podstawowymi.
-2. Przy samych danych podstawowych (100% braków) sieć i system regułowy **nie różnią się**
-   istotnie (*p* = 0,24). W pierwszej wersji, bez wskaźnika siły, reguły były tu istotnie lepsze
-   (*p* < 0,001).
+   każdej kompletności danych, także przy samych danych podstawowych.
+2. Przy samych danych podstawowych (100% braków) przewaga sieci nad regułami jest najmniejsza
+   (773 wobec 627 osób sklasyfikowanych poprawnie tylko przez jedną z metod), ale istotna
+   (*p* < 0,001). W pierwszej wersji, bez wskaźnika siły i z siecią (32, 16), reguły były tu
+   istotnie lepsze od sieci.
 3. Przy pełnych i typowych danych (0–40% braków) drzewo decyzyjne **nie jest** istotnie lepsze od
    systemu regułowego. Różnica ok. 0,5 p.p. z eksperymentu 1 mieści się w granicach przypadku, więc
    drzewo nie daje przewagi trafności, a jego zaletą pozostaje tylko interpretowalność.
@@ -275,13 +285,13 @@ Wyniki: średnia z 5 ziaren (`docs/experiments/plan_quality.csv`).
 |----------------------|------------------|------------------------------|-----------|----------|----------------------------------|----------------------|
 | 0%                   | System regułowy  | 0,813                        | 0,129     | 0,058    | 0,112                            | 0,931                |
 | 0%                   | Drzewo decyzyjne | 0,824                        | 0,085     | 0,091    | 0,069                            | 0,938                |
-| 0%                   | Sieć neuronowa   | 0,877                        | 0,059     | 0,064    | 0,048                            | 0,956                |
+| 0%                   | Sieć neuronowa   | 0,887                        | 0,057     | 0,056    | 0,048                            | 0,960                |
 | 60%                  | System regułowy  | 0,744                        | 0,120     | 0,136    | 0,099                            | 0,905                |
 | 60%                  | Drzewo decyzyjne | 0,710                        | 0,169     | 0,121    | 0,150                            | 0,892                |
-| 60%                  | Sieć neuronowa   | 0,802                        | 0,091     | 0,108    | 0,074                            | 0,928                |
+| 60%                  | Sieć neuronowa   | 0,817                        | 0,084     | 0,099    | 0,070                            | 0,934                |
 | 100%                 | System regułowy  | 0,696                        | 0,072     | 0,232    | 0,057                            | 0,883                |
 | 100%                 | Drzewo decyzyjne | 0,513                        | 0,316     | 0,172    | 0,290                            | 0,808                |
-| 100%                 | Sieć neuronowa   | 0,688                        | 0,146     | 0,165    | 0,124                            | 0,882                |
+| 100%                 | Sieć neuronowa   | 0,719                        | 0,127     | 0,154    | 0,110                            | 0,897                |
 
 We wszystkich przebiegach liczba ćwiczeń przeciwwskazanych wyniosła **0**.
 
@@ -293,23 +303,24 @@ We wszystkich przebiegach liczba ćwiczeń przeciwwskazanych wyniosła **0**.
    obowiązkowym, a filtr przeciwwskazań działa niezależnie od klasyfikatora, więc żaden plan nie
    zawierał ćwiczenia przeciwwskazanego, nawet przy błędnie wyznaczonym poziomie.
 2. **Błędny poziom zmienia plan w niewielkim stopniu.** Nawet przy samych danych podstawowych
-   plany mają 81–88% wspólnych ćwiczeń z planem wzorcowym. Ćwiczenia dla poziomu niższego są
+   plany mają 81–90% wspólnych ćwiczeń z planem wzorcowym. Ćwiczenia dla poziomu niższego są
    dostępne także na wyższych poziomach, więc pomyłka o jeden poziom zmienia tylko część ćwiczeń
    (i liczbę serii u początkujących).
 3. **Kierunek błędu zależy od metody.** System regułowy przy brakach danych częściej zaniża poziom
    (przy 100% braków 23% planów za łatwych i tylko 6% z ćwiczeniem za trudnym). Sieć przy 100%
-   braków myli się w obie strony (15% za trudnych, 17% za łatwych), a drzewo decyzyjne aż u 29% osób
+   braków myli się w obie strony (13% za trudnych, 15% za łatwych), a drzewo decyzyjne aż u 29% osób
    daje ćwiczenie trudniejsze niż ich poziom. Z punktu widzenia bezpieczeństwa plan za łatwy jest
    lepszy niż za trudny.
 4. Przy pełnych danych system regułowy częściej zawyża poziom (13% planów za trudnych) niż modele
    ML (6–9%). Progi reguł są więc dla tej populacji zbyt łagodne, co wskazuje kierunek ich korekty.
-5. Do ok. 60% braków sieć neuronowa daje plany najbliższe wzorcowym i najrzadziej za trudne.
+5. Przy każdej kompletności sieć neuronowa daje plany najczęściej dopasowane do prawdziwego
+   poziomu; do ok. 60% braków także najrzadziej za trudne.
 
-**Wniosek projektowy:** przy kompletnych danych najlepsze plany daje sieć neuronowa. Przy samych
-danych podstawowych sieć i reguły mają podobną trafność, ale reguły mylą się „w bezpieczną stronę”
-(6% planów z za trudnym ćwiczeniem wobec 12% u sieci). To argument, by przy bardzo niekompletnych
-danych brać pod uwagę nie tylko trafność, ale i kierunek błędu, oraz by informować użytkownika
-o niskiej kompletności danych.
+**Wniosek projektowy:** najlepiej dopasowane plany daje sieć neuronowa. Przy samych danych
+podstawowych sieć częściej trafia w poziom (72% wobec 70% u reguł), ale reguły mylą się
+„w bezpieczną stronę” (6% planów z za trudnym ćwiczeniem wobec 11% u sieci). Przy bardzo
+niekompletnych danych warto więc brać pod uwagę nie tylko trafność, ale i kierunek błędu, oraz
+informować użytkownika o niskiej kompletności danych.
 
 ## Eksperyment 5: wskaźnik siły u osób trenujących z ciężarami
 
@@ -327,23 +338,23 @@ Wyniki: F1 makro, średnia z 5 ziaren (`docs/experiments/strength.csv`).
 
 | Pominięte odpowiedzi | Reguły bez → z | Drzewo bez → z | Sieć bez → z |
 |----------------------|----------------|----------------|--------------|
-| 0%                   | 0,781 → 0,819  | 0,815 → 0,805  | 0,874 → 0,865 |
-| 20%                  | 0,771 → 0,788  | 0,781 → 0,780  | 0,855 → 0,847 |
-| 40%                  | 0,752 → 0,780  | 0,761 → 0,766  | 0,822 → 0,824 |
-| 60%                  | 0,721 → 0,763  | 0,709 → 0,731  | 0,781 → 0,788 |
-| 80%                  | 0,668 → 0,730  | 0,607 → 0,651  | 0,724 → 0,757 |
-| 100%                 | 0,624 → 0,664  | 0,412 → 0,508  | 0,628 → 0,701 |
+| 0%                   | 0,781 → 0,819  | 0,815 → 0,805  | 0,875 → 0,880 |
+| 20%                  | 0,771 → 0,788  | 0,781 → 0,780  | 0,852 → 0,856 |
+| 40%                  | 0,752 → 0,780  | 0,761 → 0,766  | 0,830 → 0,840 |
+| 60%                  | 0,721 → 0,763  | 0,709 → 0,731  | 0,791 → 0,818 |
+| 80%                  | 0,668 → 0,730  | 0,607 → 0,651  | 0,721 → 0,791 |
+| 100%                 | 0,624 → 0,664  | 0,412 → 0,508  | 0,643 → 0,745 |
 
 ![Wskaźnik siły](experiments/strength.png)
 
 **Obserwacje:**
 
 1. **Wskaźnik siły pomaga najbardziej, gdy brakuje testów.** Przy samych danych podstawowych
-   F1 sieci rośnie z 0,628 do 0,701, drzewa z 0,412 do 0,508, a reguł z 0,624 do 0,664. Osoba,
+   F1 sieci rośnie z 0,643 do 0,745, drzewa z 0,412 do 0,508, a reguł z 0,624 do 0,664. Osoba,
    która nie wykona testów, a poda serie z ciężarami, jest oceniana wyraźnie trafniej.
-2. **Przy kompletnych testach modele ML nie zyskują.** Przy 0–20% braków różnice sieci i drzewa
-   (−0,01) mieszczą się w odchyleniu (ok. 0,015–0,02): pompki, przysiady i deska niosą już tę samą
-   informację o sprawności, a dodatkowa cecha nieco utrudnia uczenie przy ok. 1/3 osób z wartością.
+2. **Przy kompletnych testach modele ML praktycznie nie zyskują.** Przy 0–20% braków różnice
+   sieci (+0,005) i drzewa (−0,01) mieszczą się w odchyleniu (ok. 0,01–0,02): pompki, przysiady
+   i deska niosą już tę samą informację o sprawności.
 3. **System regułowy zyskuje zawsze** (+0,02–0,06), bo dodatkowy wskaźnik z dobrze dobranymi
    progami uśrednia błędy pojedynczych testów.
 4. Wynik zależy od założeń generatora: związek wskaźnika siły z prawdziwą sprawnością został

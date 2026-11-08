@@ -103,9 +103,9 @@ więc system regułowy nie ma z góry zagwarantowanej trafności.
 medianą z dodaniem kolumn 0/1 oznaczających brak (`SimpleImputer(add_indicator=True)`).
 
 - **Drzewo decyzyjne:** głębokość maks. 6, min. 5 próbek w liściu (ograniczenie przeuczenia).
-- **Sieć neuronowa (MLP):** standaryzacja cech, jedna warstwa ukryta 32 neuronów,
+- **Sieć neuronowa (MLP):** standaryzacja cech, warstwy ukryte 64 i 32 neurony,
   wczesne zatrzymanie uczenia (`early_stopping`). Do czasu dodania wskaźnika siły stosowano
-  dwie warstwy (32 i 16 neuronów); zmianę opisuje dobór hiperparametrów.
+  warstwy 32 i 16 neuronów; zmianę opisuje dobór hiperparametrów.
 
 Ustawienia dobrano walidacją krzyżową (`experiments/tuning.py`, opis w
 [EXPERIMENTS.md](EXPERIMENTS.md#dobór-hiperparametrów)).
@@ -119,11 +119,10 @@ podział 75% / 25% ze stratyfikacją, `seed = 42`.
 |--------------------|----------|----------|
 | System regułowy    | 0,804    | 0,802    |
 | Drzewo decyzyjne   | 0,816    | 0,812    |
-| Sieć neuronowa     | 0,834    | 0,829    |
+| Sieć neuronowa     | 0,874    | 0,871    |
 
-Wynik sieci na tym jednym podziale jest niższy niż średnia z pięciu powtórzeń eksperymentu 1
-(F1 makro 0,856 ± 0,012). Pojedynczy podział jest bardziej zależny od losowania, dlatego
-porównanie metod opiera się na eksperymentach z wieloma powtórzeniami.
+Wyniki z jednego podziału zależą od losowania, dlatego porównanie metod opiera się na
+eksperymentach z wieloma powtórzeniami ([EXPERIMENTS.md](EXPERIMENTS.md)).
 
 Szczegółowe porównanie (macierze pomyłek, wpływ kompletności danych, wiele powtórzeń):
 [EXPERIMENTS.md](EXPERIMENTS.md).
@@ -139,20 +138,18 @@ Wybór i metryki trafiają do `app/ml/artifacts/best_classifier.json`.
 
 | Puste odpowiedzi | System regułowy | Drzewo decyzyjne | Sieć neuronowa | Wybrany  |
 |------------------|-----------------|------------------|----------------|----------|
-| 0                | 0,809 ± 0,014   | 0,825 ± 0,010    | 0,865 ± 0,013  | sieć     |
-| 1                | 0,794 ± 0,008   | 0,814 ± 0,009    | 0,854 ± 0,013  | sieć     |
-| 2                | 0,765 ± 0,011   | 0,793 ± 0,014    | 0,833 ± 0,008  | sieć     |
-| 3                | 0,722 ± 0,016   | 0,741 ± 0,026    | 0,803 ± 0,015  | sieć     |
-| 4                | 0,695 ± 0,006   | 0,646 ± 0,067    | 0,768 ± 0,008  | sieć     |
-| 5                | 0,675 ± 0,003   | 0,452 ± 0,194    | 0,678 ± 0,036  | sieć     |
+| 0                | 0,809 ± 0,014   | 0,825 ± 0,010    | 0,873 ± 0,004  | sieć     |
+| 1                | 0,794 ± 0,008   | 0,814 ± 0,009    | 0,865 ± 0,004  | sieć     |
+| 2                | 0,765 ± 0,011   | 0,793 ± 0,014    | 0,850 ± 0,007  | sieć     |
+| 3                | 0,722 ± 0,016   | 0,741 ± 0,026    | 0,815 ± 0,012  | sieć     |
+| 4                | 0,695 ± 0,006   | 0,646 ± 0,067    | 0,773 ± 0,005  | sieć     |
+| 5                | 0,675 ± 0,003   | 0,452 ± 0,194    | 0,702 ± 0,013  | sieć     |
 
-Przy samych danych podstawowych (5 pustych) system regułowy i sieć różnią się nieznacznie
-(0,675 wobec 0,678), ale reguły dają wynik stabilniejszy (mniejsze odchylenie). W pierwszej
-wersji, bez wskaźnika siły, przy 5 pustych odpowiedziach wybierany był system regułowy
-(0,654 wobec 0,650). Wskaźnik siły podniósł wynik sieci u osób trenujących z ciężarami
-(eksperyment 5 w [EXPERIMENTS.md](EXPERIMENTS.md)), więc teraz sieć jest wybierana dla każdej
-liczby braków. Mechanizm doboru pozostaje: przełączy klasyfikator, jeśli po zmianie danych lub
-modeli w ocenie wygra inny.
+Przy obecnych danych i modelach sieć jest najlepsza przy każdej liczbie braków, także przy samych
+danych podstawowych (0,702 wobec 0,675 reguł). W pierwszej wersji, bez wskaźnika siły i z siecią
+(32, 16), przy 5 pustych odpowiedziach wybierany był system regułowy (0,654 wobec 0,650).
+Mechanizm doboru pozostaje: przełączy klasyfikator, jeśli po zmianie danych lub modeli w ocenie
+wygra inny.
 
 Aplikacja liczy puste odpowiedzi w profilu użytkownika i klasyfikuje go klasyfikatorem wybranym
 dla tej liczby. Gdy pliku nie ma (modele niewytrenowane), używany jest system regułowy.

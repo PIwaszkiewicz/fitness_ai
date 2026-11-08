@@ -16,3 +16,8 @@ class FitnessLevelResult(BaseModel):
     probabilities: dict[FitnessLevel, float] | None
     # Kompletność danych profilu: im niższa, tym mniej wiarygodny wynik.
     data_completeness: int
+    # Liczba pustych odpowiedzi spośród 5 używanych przy doborze klasyfikatora
+    # (staż i cztery testy sprawności) oraz F1 makro klasyfikatorów z oceny przy tej liczbie.
+    # Uzasadnia wybór klasyfikatora; None, gdy modele nie zostały ocenione.
+    missing_answers: int
+    selection_scores: dict[ClassifierName, float] | None

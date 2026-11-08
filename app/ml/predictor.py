@@ -52,6 +52,21 @@ def best_classifier(profile) -> ClassifierName:
     return ClassifierName(best[str(count_missing_answers(profile))])
 
 
+def selection_scores(profile) -> dict[ClassifierName, float] | None:
+    """F1 makro każdego klasyfikatora z oceny przy liczbie pustych odpowiedzi w profilu.
+
+    Pokazuje użytkownikowi, dlaczego wybrano dany klasyfikator. None, gdy brak oceny.
+    """
+    path = best_classifier_path()
+    if not path.exists():
+        return None
+    results = json.loads(path.read_text()).get("metrics_by_missing_answers")
+    if results is None:  # plik z oceną bez metryk (np. zapisany ręcznie)
+        return None
+    scores = results[str(count_missing_answers(profile))]
+    return {ClassifierName(name): round(values["f1_macro"], 3) for name, values in scores.items()}
+
+
 @lru_cache
 def load_classifier(name: ClassifierName):
     """Zwraca klasyfikator. Brak pliku modelu zgłasza FileNotFoundError."""

@@ -21,9 +21,25 @@ def test_atlas_jest_poprawny_i_kompletny():
 def test_seed_mozna_uruchomic_wielokrotnie(db_session):
     first = seed_exercises(db_session)
     second = seed_exercises(db_session)
-    assert first == len(load_atlas())
-    assert second == 0
-    assert db_session.query(Exercise).count() == first
+    assert first == (len(load_atlas()), 0)
+    assert second == (0, 0)
+    assert db_session.query(Exercise).count() == len(load_atlas())
+
+
+def test_seed_aktualizuje_zmienione_cwiczenie(db_session):
+    # Baza z ćwiczeniem zapisanym ze starą grupą mięśniową (jak przed poprawką atlasu).
+    seed_exercises(db_session)
+    deadlift = db_session.query(Exercise).filter_by(name="Martwy ciąg klasyczny").one()
+    deadlift.muscle_group = "back"
+    db_session.commit()
+    assert seed_exercises(db_session) == (0, 1)
+    db_session.refresh(deadlift)
+    assert deadlift.muscle_group == "glutes"
+
+
+def test_martwy_ciag_w_grupie_posladkow():
+    groups = {e.name: e.muscle_group for e in load_atlas() if e.name.startswith("Martwy ciąg")}
+    assert set(groups.values()) == {MuscleGroup.GLUTES}
 
 
 def test_plik_atlasu_bez_duplikatow_i_z_poprawnymi_wartosciami():

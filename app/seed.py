@@ -1,7 +1,10 @@
 """Skrypt wypełniający bazę startowym atlasem ćwiczeń z pliku app/data/exercises.json.
 
 Uruchomienie: python -m app.seed
-Skrypt można uruchamiać wielokrotnie: ćwiczenia już istniejące (po nazwie) są pomijane.
+Skrypt można uruchamiać wielokrotnie: brakujące ćwiczenia są dodawane, a istniejące (po nazwie)
+są aktualizowane, jeśli ich dane w pliku się zmieniły (np. poprawiona grupa mięśniowa).
+Plik atlasu jest więc źródłem prawdy dla swoich ćwiczeń; ćwiczenia dodane przez API
+spoza atlasu pozostają bez zmian.
 """
 
 import json
@@ -23,18 +26,24 @@ def load_atlas() -> list[ExerciseCreate]:
         return [ExerciseCreate(**item) for item in json.load(file)]
 
 
-def seed_exercises(db: Session) -> int:
-    """Dodaje brakujące ćwiczenia z atlasu i zwraca liczbę dodanych."""
-    added = 0
+def seed_exercises(db: Session) -> tuple[int, int]:
+    """Dodaje brakujące ćwiczenia z atlasu, aktualizuje zmienione i zwraca (dodane, zaktualizowane)."""
+    added = updated = 0
     for exercise in load_atlas():
-        if exercise_service.get_exercise_by_name(db, exercise.name) is None:
+        existing = exercise_service.get_exercise_by_name(db, exercise.name)
+        if existing is None:
             exercise_service.create_exercise(db, exercise)
             added += 1
-    return added
+            continue
+        saved = {field: getattr(existing, field) for field in exercise.model_dump()}
+        if saved != exercise.model_dump():
+            exercise_service.update_exercise(db, existing, exercise)
+            updated += 1
+    return added, updated
 
 
 if __name__ == "__main__":
     Base.metadata.create_all(bind=engine)
     with SessionLocal() as session:
-        count = seed_exercises(session)
-    print(f"Dodano ćwiczeń: {count}")
+        added, updated = seed_exercises(session)
+    print(f"Dodano ćwiczeń: {added}, zaktualizowano: {updated}")

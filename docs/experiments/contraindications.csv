@@ -1,4 +1,4 @@
 detector,precision,recall,f1,missed,false_alarms,exact_match
 rules,0.7838,0.6493,0.7102,94,48,0.4451
-decision_tree,0.7552,0.6791,0.7151,86,59,0.439
-hybrid,0.6966,0.7537,0.724,66,88,0.4268
+decision_tree,0.7637,0.6754,0.7168,87,56,0.4512
+hybrid,0.7014,0.7537,0.7266,66,86,0.439

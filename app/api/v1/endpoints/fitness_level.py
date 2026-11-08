@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from app.api.v1.endpoints.profiles import ProfileFromPath
 from app.ml import predictor
+from app.ml.features import count_missing_answers
 from app.ml.predictor import ClassifierName
 from app.schemas.fitness_level import FitnessLevelResult
 
@@ -31,5 +32,7 @@ def get_fitness_level(profile: ProfileFromPath, method: ClassifierName | None = 
         profile_id=profile.id,
         method=method,
         data_completeness=profile.data_completeness,
+        missing_answers=count_missing_answers(profile),
+        selection_scores=predictor.selection_scores(profile),
         **result,
     )

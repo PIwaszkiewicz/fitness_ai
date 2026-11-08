@@ -26,6 +26,18 @@ const CLASSIFIER_NAMES = {
   mlp: "Sieć neuronowa (MLP)",
 };
 
+// Krótki opis działania każdego klasyfikatora dla użytkownika.
+const CLASSIFIER_DESCRIPTIONS = {
+  rules: "System ekspertowy: każda odpowiedź i wynik testu dostaje 0–2 punkty według norm "
+    + "sprawności, a średnia punktów wyznacza poziom.",
+  decision_tree: "Model uczony na danych, który dochodzi do wyniku serią prostych pytań "
+    + "o odpowiedzi, np. czy liczba pompek przekracza próg.",
+  mlp: "Model uczony na danych, który łączy wszystkie odpowiedzi naraz i wychwytuje "
+    + "zależności między nimi.",
+};
+// Liczba odpowiedzi branych pod uwagę przy doborze klasyfikatora (staż i cztery testy).
+const SELECTION_ANSWERS = 5;
+
 let questions = []; // definicja pytań pobrana z API
 let profileId = null; // id profilu zapisanego po wysłaniu kwestionariusza
 
@@ -283,14 +295,39 @@ function renderDay(day) {
     </div>`;
 }
 
-function renderPlan(plan, probabilities) {
+// Opis, który algorytm ocenił poziom i dlaczego został wybrany (wyniki F1 z oceny modeli).
+function renderAlgorithm(classifier, level) {
+  let html = `<h3>Jak oceniliśmy Twój poziom</h3>
+    <p>Algorytm: <strong>${CLASSIFIER_NAMES[classifier]}</strong>.
+    ${escapeHtml(CLASSIFIER_DESCRIPTIONS[classifier])}</p>`;
+  const ranking = level && level.selection_scores
+    ? Object.entries(level.selection_scores).sort((a, b) => b[1] - a[1])
+    : [];
+  // Wyniki oceny pokazujemy tylko wtedy, gdy użyto zwycięzcy z oceny (a nie zastępczo reguł).
+  // Porównanie z najwyższym wynikiem, a nie z pierwszym miejscem, bo przy remisie kolejność
+  // po zaokrągleniu może być inna niż przy wyborze klasyfikatora.
+  if (ranking.length && level.selection_scores[classifier] === ranking[0][1]) {
+    const scores = ranking
+      .map(([name, f1]) => `<li>${CLASSIFIER_NAMES[name]}: ${f1.toFixed(2).replace(".", ",")}</li>`)
+      .join("");
+    html += `<p class="muted">Pominięte odpowiedzi o staż i testy sprawności:
+      ${level.missing_answers} z ${SELECTION_ANSWERS}. Przy takiej liczbie braków ten algorytm
+      miał w ocenie najwyższą trafność (miara F1, od 0 do 1):</p>
+      <ul class="muted">${scores}</ul>`;
+  } else {
+    html += `<p class="muted">Modele uczenia maszynowego nie są dostępne, dlatego poziom
+      wyznaczył system regułowy.</p>`;
+  }
+  if (level && level.probabilities) {
+    html += "<p>Pewność modelu:</p>" + renderProbabilities(level.probabilities);
+  }
+  return html;
+}
+
+function renderPlan(plan, level) {
   let html = `<div class="card">
       <h2>Poziom sprawności: <span class="level">${LEVEL_NAMES[plan.fitness_level]}</span></h2>
-      <p class="muted">Wyznaczony przez: ${CLASSIFIER_NAMES[plan.classifier]}
-      (najdokładniejszy w ocenie przy takiej liczbie pominiętych odpowiedzi)</p>`;
-  if (probabilities) {
-    html += "<p>Pewność modelu:</p>" + renderProbabilities(probabilities);
-  }
+      ${renderAlgorithm(plan.classifier, level)}`;
   html += `</div>
     <div class="card"><h2>Twój plan</h2>
       <p>${trainingsLabel(plan.days_per_week)} w tygodniu, około ${plan.session_minutes} minut
@@ -307,20 +344,16 @@ function renderPlan(plan, probabilities) {
   document.getElementById("plan").innerHTML = html;
 }
 
-// Pobiera plan. Poziom wyznacza serwer najlepszym klasyfikatorem z oceny. Pewność modelu
-// (prawdopodobieństwa) jest dostępna tylko dla modeli ML, więc pobieramy ją, gdy plan
-// nie powstał z systemu regułowego.
+// Pobiera plan. Poziom wyznacza serwer klasyfikatorem dobranym do liczby pustych odpowiedzi.
+// Drugie żądanie, tym samym klasyfikatorem, zwraca pewność modelu (tylko modele ML)
+// i wyniki z oceny, które uzasadniają wybór klasyfikatora.
 async function loadPlan() {
   const planBox = document.getElementById("plan");
   planBox.innerHTML = '<p class="muted">Wczytywanie planu…</p>';
   try {
     const plan = await request(`/profiles/${profileId}/plan`);
-    let probabilities = null;
-    if (plan.classifier !== "rules") {
-      const level = await request(`/profiles/${profileId}/fitness-level?method=${plan.classifier}`);
-      probabilities = level.probabilities;
-    }
-    renderPlan(plan, probabilities);
+    const level = await request(`/profiles/${profileId}/fitness-level?method=${plan.classifier}`);
+    renderPlan(plan, level);
   } catch (error) {
     planBox.innerHTML = `<div class="alert alert-error">${escapeHtml(error.message)}</div>`;
   }

@@ -139,6 +139,9 @@ i bez etapu budowania. FastAPI serwuje ją razem z API, więc strona i API mają
 3. Po wysłaniu (`POST /api/v1/questionnaire`) strona pokazuje ostrzeżenia, kompletność danych,
    poziom sprawności z pewnością modelu i tygodniowy plan. Klasyfikator dobiera serwer
    (najdokładniejszy w ocenie przy danej liczbie pustych odpowiedzi, opis w [ML.md](ML.md)).
+   Sekcja „Jak oceniliśmy Twój poziom” podaje użyty algorytm z krótkim opisem, liczbę pominiętych
+   odpowiedzi i wyniki F1 wszystkich klasyfikatorów przy tej liczbie braków, czyli powód wyboru
+   (pola `missing_answers` i `selection_scores` w `GET /profiles/{id}/fitness-level`).
 4. Każdy tekst z API jest wstawiany do strony po zamianie znaków specjalnych HTML (ochrona przed XSS).
 
 ## Kwestionariusz

@@ -80,3 +80,23 @@ def test_klasyfikator_zalezy_od_liczby_pustych_odpowiedzi(client, trained_models
 def test_bez_oceny_modeli_uzywany_jest_system_regulowy(client, profile_id, tmp_path, monkeypatch):
     monkeypatch.setattr(predictor, "ARTIFACTS_DIR", tmp_path)  # brak best_classifier.json
     assert client.get(url(profile_id)).json()["method"] == "rules"
+
+
+def test_wynik_zawiera_uzasadnienie_wyboru_klasyfikatora(client, trained_models):
+    metrics = {"mlp": {"f1_macro": 0.9, "accuracy": 0.9}, "rules": {"f1_macro": 0.8, "accuracy": 0.8}}
+    predictor.best_classifier_path().write_text(json.dumps({
+        "best_by_missing_answers": {str(n): "mlp" for n in range(6)},
+        "metrics_by_missing_answers": {str(n): metrics for n in range(6)},
+    }))
+    answers = {key: value for key, value in PROFILE.items() if key not in ("squats", "plank_seconds")}
+    profile_id = client.post("/api/v1/profiles", json=answers).json()["id"]
+    result = client.get(url(profile_id)).json()
+    assert result["missing_answers"] == 2  # przysiady i deska
+    assert result["selection_scores"] == {"mlp": 0.9, "rules": 0.8}
+
+
+def test_bez_oceny_modeli_brak_uzasadnienia(client, profile_id, tmp_path, monkeypatch):
+    monkeypatch.setattr(predictor, "ARTIFACTS_DIR", tmp_path)
+    result = client.get(url(profile_id)).json()
+    assert result["selection_scores"] is None
+    assert result["missing_answers"] == 0

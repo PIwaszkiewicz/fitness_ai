@@ -13,10 +13,12 @@ from app.models.enums import (
     Equipment,
     Gender,
     Limitation,
+    PushupVariant,
     TrainingExperience,
     TrainingGoal,
 )
 from app.schemas.questionnaire import Option, Question, ShowIf
+from app.services.strength import LIFTS, MAX_REPS
 
 # Polskie etykiety wartości słownikowych wyświetlane użytkownikowi.
 LABELS = {
@@ -53,6 +55,8 @@ LABELS = {
     Equipment.RESISTANCE_BAND: "Guma oporowa",
     Equipment.PULL_UP_BAR: "Drążek do podciągania",
     Equipment.MACHINE: "Maszyny na siłowni",
+    PushupVariant.CLASSIC: "Klasyczne",
+    PushupVariant.KNEES: "Z kolan",
 }
 
 
@@ -64,7 +68,31 @@ def options_for(enum_class: type[StrEnum]) -> list[Option]:
 BASIC = "Dane podstawowe"
 HEALTH = "Zdrowie i ograniczenia"
 TESTS = "Testy sprawności"
+LIFTING = "Ćwiczenia z ciężarami"
 PREFERENCES = "Preferencje treningowe"
+
+# Pytania o ciężary widzi tylko osoba, która odpowiedziała, że trenuje z ciężarami.
+LIFTS_SHOWN = ShowIf(field="lifts_weights", any_of=["true"])
+
+
+def lift_questions() -> list[Question]:
+    """Dwa pytania na każde ćwiczenie z LIFTS: ciężar i liczba powtórzeń ostatniej serii."""
+    questions = []
+    for lift in LIFTS:
+        weight_text = (
+            f"{lift.label}: obciążenie dodatkowe (0, jeśli bez obciążenia)"
+            if lift.adds_body_weight else f"{lift.label}: ciężar"
+        )
+        questions += [
+            Question(id=f"{lift.name}_kg", section=LIFTING, text=weight_text, type="number",
+                     required=False, unit="kg", min=lift.min_kg, max=lift.max_kg,
+                     show_if=LIFTS_SHOWN),
+            Question(id=f"{lift.name}_reps", section=LIFTING,
+                     text=f"{lift.label}: liczba powtórzeń w tej serii", type="integer",
+                     required=False, unit="powtórzeń", min=1, max=MAX_REPS, show_if=LIFTS_SHOWN),
+        ]
+    return questions
+
 
 QUESTIONS = [
     # Dane podstawowe
@@ -101,6 +129,9 @@ QUESTIONS = [
     Question(id="pushups", section=TESTS,
              text="Ile pompek wykonasz bez przerwy (z kolan, jeśli klasyczne są za trudne)?",
              type="integer", required=False, unit="powtórzeń", min=0, max=150),
+    Question(id="pushup_variant", section=TESTS, text="Jakie pompki wykonujesz?",
+             type="choice", required=False, options=options_for(PushupVariant),
+             hint="Pompki z kolan są łatwiejsze, więc ten sam wynik oznacza mniejszą siłę."),
     Question(id="squats", section=TESTS, text="Ile przysiadów wykonasz w ciągu 1 minuty?",
              type="integer", required=False, unit="powtórzeń", min=0, max=150),
     Question(id="plank_seconds", section=TESTS, text="Jak długo utrzymasz deskę (plank)?",
@@ -109,6 +140,13 @@ QUESTIONS = [
              text="Jakie jest Twoje tętno spoczynkowe?", type="integer", required=False,
              unit="uderzeń/min", min=30, max=150,
              hint="Zmierz rano, przed wstaniem z łóżka, przez 60 sekund."),
+    # Ćwiczenia z ciężarami
+    Question(id="lifts_weights", section=LIFTING,
+             text="Czy regularnie trenujesz z wolnymi ciężarami (sztanga)?", type="boolean",
+             required=False,
+             hint="Jeśli tak, podaj dla wybranych ćwiczeń ostatnią serię roboczą (ciężar i liczbę "
+                  "powtórzeń, 1–10). Nie wykonuj w tym celu testu ciężaru maksymalnego."),
+    *lift_questions(),
     # Preferencje treningowe
     Question(id="training_days_per_week", section=PREFERENCES,
              text="Ile dni w tygodniu chcesz trenować?", type="integer", required=False,

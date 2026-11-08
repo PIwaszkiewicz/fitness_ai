@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.data.questions import QUESTIONS
+from app.data.questions import LIFTS_SHOWN, QUESTIONS
 from app.schemas import UserProfileCreate
 
 URL = "/api/v1/questionnaire"
@@ -27,7 +27,11 @@ FULL_ANSWERS = {
     "training_days_per_week": 3,
     "session_minutes": 45,
     "available_equipment": ["none", "dumbbells"],
+    "lifts_weights": False,
 }
+
+# Seria w przysiadzie ze sztangą (pytania o ciężary widzą tylko trenujący z ciężarami).
+LIFTER_ANSWERS = {**BASIC_ANSWERS, "lifts_weights": True, "squat_kg": 100, "squat_reps": 5}
 
 
 def test_pytania_odpowiadaja_polom_schematu():
@@ -39,6 +43,10 @@ def test_pytania_odpowiadaja_polom_schematu():
 def test_zakresy_pytan_zgodne_ze_schematem(question):
     # Wartości graniczne z definicji pytań muszą przechodzić walidację, a wartości poza nimi nie.
     base = {**BASIC_ANSWERS, "limitations": ["knee"]}
+    if question.show_if == LIFTS_SHOWN:
+        # Ciężar i powtórzenia podaje się w parze, tylko przy treningu z ciężarami.
+        lift = question.id.rsplit("_", 1)[0]
+        base |= {"lifts_weights": True, f"{lift}_kg": 50, f"{lift}_reps": 5}
     UserProfileCreate(**{**base, question.id: question.min})
     UserProfileCreate(**{**base, question.id: question.max})
     with pytest.raises(ValidationError):
@@ -63,7 +71,7 @@ def test_minimalne_odpowiedzi(client):
     assert response.status_code == 201
     result = response.json()
     assert result["profile"]["data_completeness"] == 0
-    assert len(result["missing_answers"]) == 8
+    assert len(result["missing_answers"]) == 9
     assert result["warnings"] == []
 
 
@@ -83,7 +91,7 @@ def test_profil_z_kwestionariusza_jest_zapisany(client):
 def test_kontuzja_dodaje_pytanie_o_bol(client):
     result = client.post(URL, json={**FULL_ANSWERS, "limitations": ["knee"]}).json()
     assert result["missing_answers"] == ["pain_level"]
-    assert result["profile"]["data_completeness"] == round(100 * 8 / 9)
+    assert result["profile"]["data_completeness"] == round(100 * 9 / 10)
 
 
 def test_bol_bez_ograniczen_jest_odrzucany(client):
@@ -123,3 +131,33 @@ def test_choroba_serca_ze_zgoda_lekarza_bez_ostrzezenia(client):
 def test_progi_ostrzezen(client, extra, expected_warnings):
     warnings = client.post(URL, json={**BASIC_ANSWERS, **extra}).json()["warnings"]
     assert len(warnings) == expected_warnings
+
+
+def test_pytania_o_ciezary_widzi_tylko_trenujacy(client):
+    beginner = client.post(URL, json={**FULL_ANSWERS, "lifts_weights": False}).json()
+    lifter = client.post(URL, json={**FULL_ANSWERS, **LIFTER_ANSWERS}).json()
+    assert not any(item.endswith(("_kg", "_reps")) for item in beginner["missing_answers"])
+    # Trenujący podał 1 z 5 ćwiczeń, więc brakuje 8 pól (4 ćwiczenia × ciężar i powtórzenia).
+    assert len(lifter["missing_answers"]) == 8
+    assert lifter["profile"]["squat_kg"] == 100
+
+
+@pytest.mark.parametrize(
+    "answers",
+    [
+        {**BASIC_ANSWERS, "squat_kg": 100, "squat_reps": 5},  # bez treningu z ciężarami
+        {**BASIC_ANSWERS, "lifts_weights": False, "squat_kg": 100, "squat_reps": 5},
+        {**BASIC_ANSWERS, "lifts_weights": True, "squat_kg": 100},  # brak powtórzeń
+        {**LIFTER_ANSWERS, "squat_reps": 12},  # wzór 1RM dokładny do 10 powtórzeń
+        {**BASIC_ANSWERS, "pushup_variant": "knees"},  # wariant bez wyniku pompek
+    ],
+)
+def test_niespojne_odpowiedzi_o_ciezarach_sa_odrzucane(client, answers):
+    assert client.post(URL, json=answers).status_code == 422
+
+
+def test_wariant_pompek_nie_wplywa_na_kompletnosc(client):
+    without = client.post(URL, json=FULL_ANSWERS).json()
+    with_variant = client.post(URL, json={**FULL_ANSWERS, "pushup_variant": "knees"}).json()
+    assert without["profile"]["data_completeness"] == with_variant["profile"]["data_completeness"]
+    assert with_variant["profile"]["pushup_variant"] == "knees"

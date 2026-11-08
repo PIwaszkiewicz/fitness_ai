@@ -12,9 +12,11 @@ from app.models.enums import (
     Equipment,
     Gender,
     Limitation,
+    PushupVariant,
     TrainingExperience,
     TrainingGoal,
 )
+from app.services.strength import LIFTS, MAX_REPS
 
 
 class UserProfileCreate(BaseModel):
@@ -39,9 +41,24 @@ class UserProfileCreate(BaseModel):
 
     # Testy sprawności (opcjonalne)
     pushups: int | None = Field(default=None, ge=0, le=150)
+    pushup_variant: PushupVariant | None = None
     squats: int | None = Field(default=None, ge=0, le=150)
     plank_seconds: int | None = Field(default=None, ge=0, le=600)
     resting_heart_rate: int | None = Field(default=None, ge=30, le=150)
+
+    # Ćwiczenia z ciężarami (opcjonalne, tylko dla trenujących): ostatnia seria robocza.
+    # Zakresy ciężarów odpowiadają definicji LIFTS w app/services/strength.py.
+    lifts_weights: bool | None = None
+    squat_kg: float | None = Field(default=None, ge=1, le=500)
+    squat_reps: int | None = Field(default=None, ge=1, le=MAX_REPS)
+    deadlift_kg: float | None = Field(default=None, ge=1, le=500)
+    deadlift_reps: int | None = Field(default=None, ge=1, le=MAX_REPS)
+    bench_press_kg: float | None = Field(default=None, ge=1, le=400)
+    bench_press_reps: int | None = Field(default=None, ge=1, le=MAX_REPS)
+    overhead_press_kg: float | None = Field(default=None, ge=1, le=250)
+    overhead_press_reps: int | None = Field(default=None, ge=1, le=MAX_REPS)
+    pull_up_kg: float | None = Field(default=None, ge=0, le=150)
+    pull_up_reps: int | None = Field(default=None, ge=1, le=MAX_REPS)
 
     # Preferencje treningowe (opcjonalne)
     training_days_per_week: int | None = Field(default=None, ge=1, le=7)
@@ -60,14 +77,24 @@ class UserProfileCreate(BaseModel):
     def check_conditional_answers(self):
         """Odrzuca odpowiedzi na pytania warunkowe, których warunek nie jest spełniony.
 
-        Pytanie o ból zadaje się tylko osobom z ograniczeniami, a o zgodę lekarza
-        tylko osobom z chorobami układu krążenia (te same warunki co w definicji pytań).
+        Pytanie o ból zadaje się tylko osobom z ograniczeniami, o zgodę lekarza
+        tylko osobom z chorobami układu krążenia, a o ciężary tylko osobom trenującym
+        z ciężarami (te same warunki co w definicji pytań).
         """
         if self.pain_level is not None and not self.limitations:
             raise ValueError("pain_level można podać tylko przy zgłoszonych ograniczeniach")
         has_cardio = any(item in CARDIOVASCULAR_LIMITATIONS for item in self.limitations)
         if self.medical_clearance is not None and not has_cardio:
             raise ValueError("medical_clearance dotyczy tylko chorób układu krążenia")
+        if self.pushup_variant is not None and self.pushups is None:
+            raise ValueError("pushup_variant można podać tylko razem z wynikiem pompek")
+        for lift in LIFTS:
+            weight = getattr(self, f"{lift.name}_kg")
+            reps = getattr(self, f"{lift.name}_reps")
+            if (weight is None) != (reps is None):
+                raise ValueError(f"{lift.name}: podaj razem ciężar i liczbę powtórzeń")
+            if weight is not None and self.lifts_weights is not True:
+                raise ValueError(f"{lift.name}: ciężary podaje się tylko przy treningu z ciężarami")
         return self
 
 

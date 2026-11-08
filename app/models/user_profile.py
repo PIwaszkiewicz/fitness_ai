@@ -33,9 +33,24 @@ class UserProfile(Base):
 
     # Testy sprawności wykonywane samodzielnie przez użytkownika
     pushups: Mapped[int | None] = mapped_column(Integer)
+    pushup_variant: Mapped[str | None] = mapped_column(String(20))
     squats: Mapped[int | None] = mapped_column(Integer)
     plank_seconds: Mapped[int | None] = mapped_column(Integer)
     resting_heart_rate: Mapped[int | None] = mapped_column(Integer)
+
+    # Ćwiczenia z ciężarami: ostatnia seria robocza (ciężar i powtórzenia), z której
+    # serwer szacuje ciężar maksymalny (app/services/strength.py). Tylko dla trenujących.
+    lifts_weights: Mapped[bool | None] = mapped_column(Boolean)
+    squat_kg: Mapped[float | None] = mapped_column(Float)
+    squat_reps: Mapped[int | None] = mapped_column(Integer)
+    deadlift_kg: Mapped[float | None] = mapped_column(Float)
+    deadlift_reps: Mapped[int | None] = mapped_column(Integer)
+    bench_press_kg: Mapped[float | None] = mapped_column(Float)
+    bench_press_reps: Mapped[int | None] = mapped_column(Integer)
+    overhead_press_kg: Mapped[float | None] = mapped_column(Float)
+    overhead_press_reps: Mapped[int | None] = mapped_column(Integer)
+    pull_up_kg: Mapped[float | None] = mapped_column(Float)  # obciążenie dodatkowe, bez masy ciała
+    pull_up_reps: Mapped[int | None] = mapped_column(Integer)
 
     # Preferencje treningowe
     training_days_per_week: Mapped[int | None] = mapped_column(Integer)

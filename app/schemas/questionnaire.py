@@ -15,7 +15,11 @@ class Option(BaseModel):
 
 
 class ShowIf(BaseModel):
-    """Warunek wyświetlenia pytania: pole `field` zawiera co najmniej jedną z wartości `any_of`."""
+    """Warunek wyświetlenia pytania: odpowiedź na pole `field` to jedna z wartości `any_of`.
+
+    Przy pytaniu wielokrotnego wyboru wystarczy, że lista zawiera jedną z nich.
+    Odpowiedź tak/nie zapisuje się w any_of jako "true" / "false".
+    """
 
     field: str
     any_of: list[str]

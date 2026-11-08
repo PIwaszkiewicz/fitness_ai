@@ -182,8 +182,8 @@ z lekarzem ani fizjoterapeutą.
 Plan jest generowany na żądanie z aktualnego profilu (`app/services/plan_generator.py`),
 więc po aktualizacji profilu kolejne zapytanie zwraca plan dostosowany do nowych danych.
 
-1. Poziom sprawności wyznacza wybrany klasyfikator (gdy model ML nie jest wytrenowany,
-   używany jest system regułowy).
+1. Poziom sprawności wyznacza klasyfikator dobrany do liczby pustych odpowiedzi (gdy model ML
+   nie jest wytrenowany, używany jest system regułowy).
 2. Dopuszczone są ćwiczenia z dostępnym sprzętem (masa ciała zawsze), o trudności
    nie większej niż poziom sprawności i **bez przeciwwskazań** dla ograniczeń użytkownika.
 3. Serie, powtórzenia i przerwy zależą od celu (np. siła: 4 × 4–6, przerwa 150 s);
@@ -191,7 +191,15 @@ więc po aktualizacji profilu kolejne zapytanie zwraca plan dostosowany do nowyc
 4. Liczba ćwiczeń (3–8) wynika z długości treningu po odjęciu 10 minut rozgrzewki.
 5. Przy 1–3 dniach w tygodniu każdy trening obejmuje całe ciało, przy 4–7 dniach
    treningi góry i dołu ciała następują na zmianę. Ćwiczenia rotują między dniami.
-6. Plan zawiera rekomendacje progresji i ostrzeżenia zdrowotne z kwestionariusza.
+6. **Ciężary startowe:** gdy użytkownik podał serię w ćwiczeniu z kwestionariusza, przy tym
+   ćwiczeniu w planie (`load`) pojawia się ciężar: 1RM / (1 + (górna granica powtórzeń + 2) / 30),
+   czyli odwrotny wzór Epleya z 2 powtórzeniami w zapasie, zaokrąglony w dół do 2,5 kg.
+   Przykład: przysiad 100 kg × 5 (1RM ≈ 116,7 kg), cel siła (4–6 powtórzeń): ok. 92 kg → 90 kg.
+   Przy podciąganiu podawane jest obciążenie dodatkowe („+5 kg”), „masa ciała” albo „masa ciała,
+   z asystą gumy”, gdy użytkownik nie wykona tylu powtórzeń bez pomocy. Ciężar dotyczy tylko pięciu
+   ćwiczeń z atlasu odpowiadających pytaniom (`ATLAS_LIFTS` w `app/services/strength.py`);
+   przy innych odmianach (np. z hantlami) przeliczanie byłoby zgadywaniem, więc ciężaru brak.
+7. Plan zawiera rekomendacje progresji i ostrzeżenia zdrowotne z kwestionariusza.
 
 Domyślnie (gdy brak odpowiedzi): 3 dni w tygodniu, 45 minut, ćwiczenia z masą ciała.
 

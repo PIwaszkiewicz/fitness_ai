@@ -14,6 +14,7 @@ from app.services.plan_generator import (
     is_safe,
     select_exercises,
 )
+from app.services.strength import ATLAS_LIFTS, LIFTS
 
 # Atlas z pliku z nadanymi identyfikatorami, jak po zapisie do bazy.
 ATLAS = [ExerciseRead(id=i, **e.model_dump()) for i, e in enumerate(load_atlas(), start=1)]
@@ -145,3 +146,32 @@ def test_wskazowki_redukcyjne_tylko_dla_celu_redukcji():
 def test_konsultacja_przed_interwalami_przy_chorobach_krazenia(limitations, expected):
     plan = plan_for(training_goal="weight_loss", limitations=limitations)
     assert (INTERVAL_CONSULTATION_TIP in plan.progression) == expected
+
+
+def plan_loads(plan) -> dict[str, str | None]:
+    return {exercise.name: exercise.load for day in plan.days for exercise in day.exercises}
+
+
+def test_ciezary_startowe_przy_cwiczeniach_z_podana_seria():
+    # Mężczyzna 80 kg, przysiad 100 kg × 5 (1RM ≈ 116,7 kg); cel siła: serie 4–6.
+    plan = plan_for(
+        FitnessLevel.ADVANCED, gender="male", weight_kg=80, training_goal="strength",
+        available_equipment=["barbell"], lifts_weights=True, squat_kg=100, squat_reps=5,
+    )
+    loads = plan_loads(plan)
+    assert loads["Przysiad ze sztangą"] == "90 kg"  # 116,7 / (1 + 8/30) ≈ 92,1 → 90 kg
+    # Bez podanej serii nie ma ciężaru, także przy innych odmianach przysiadu.
+    assert all(load is None for name, load in loads.items() if name != "Przysiad ze sztangą")
+    assert any("powtórzenia w zapasie" in tip for tip in plan.progression)
+
+
+def test_bez_serii_plan_nie_podaje_ciezarow():
+    plan = plan_for(FitnessLevel.ADVANCED, available_equipment=["barbell"])
+    assert all(load is None for load in plan_loads(plan).values())
+    assert not any("wyliczono z podanych serii" in tip for tip in plan.progression)
+
+
+def test_cwiczenia_z_ciezarem_sa_w_atlasie():
+    names = {exercise.name for exercise in ATLAS}
+    assert set(ATLAS_LIFTS) <= names
+    assert set(ATLAS_LIFTS.values()) == {lift.name for lift in LIFTS}

@@ -224,24 +224,24 @@ Wyniki (`docs/experiments/contraindications.csv`):
 | Detektor           | Precyzja | Recall | F1    | Przeoczone | Fałszywe alarmy | Całe ćwiczenie poprawnie |
 |--------------------|----------|--------|-------|------------|-----------------|--------------------------|
 | Reguły eksperckie  | 0,784    | 0,649  | 0,710 | 94         | 48              | 45%                      |
-| Drzewo decyzyjne   | 0,755    | 0,679  | 0,715 | 86         | 59              | 44%                      |
-| Hybryda (suma)     | 0,697    | 0,754  | 0,724 | 66         | 88              | 43%                      |
+| Drzewo decyzyjne   | 0,764    | 0,675  | 0,717 | 87         | 56              | 45%                      |
+| Hybryda (suma)     | 0,701    | 0,754  | 0,727 | 66         | 86              | 44%                      |
 
 ![Wykrywanie przeciwwskazań](experiments/contraindications.png)
 
 **Obserwacje:**
 
-1. Wszystkie trzy detektory mają zbliżone F1 (0,710–0,724), żaden nie jest wyraźnie lepszy.
+1. Wszystkie trzy detektory mają zbliżone F1 (0,710–0,727), żaden nie jest wyraźnie lepszy.
    Reguły zachowują najwyższą precyzję (najmniej fałszywych alarmów), a hybryda najwyższy recall.
 2. **Wpływ rozbudowy atlasu.** W pierwszej wersji atlasu (67 ćwiczeń) reguły miały wyraźnie
    najwyższe F1 (0,749 wobec 0,663 drzewa). Po rozbudowie do 164 ćwiczeń F1 drzewa wzrosło
-   do 0,715, bo ma więcej przykładów do nauki, a F1 reguł spadło do 0,710. Metoda ucząca się
+   do 0,717, bo ma więcej przykładów do nauki, a F1 reguł spadło do 0,710. Metoda ucząca się
    zyskuje na większym zbiorze danych, a reguły zapisane raz przez eksperta nie.
 3. **Reguły słabo uogólniają się na ćwiczenia, których autor nie przewidział.** Nowe ćwiczenia
    ujawniły luki reguł, np. reguła „ćwiczenie izolowane na nogi → kolano” nie pasuje do wspięć
    na palce (staw skokowy) ani przywodzenia nóg (biodro). Recall reguł dla stawu skokowego
    spadł z 0,50 do 0,19, a precyzja dla kolana z 0,93 do 0,68. Drzewo wygrywa tam, gdzie atlas
-   zawiera wiele spójnych przykładów: łokieć (F1 0,85 wobec 0,75 reguł), nadgarstek i choroba
+   zawiera wiele spójnych przykładów: łokieć (F1 0,87 wobec 0,75 reguł), nadgarstek i choroba
    serca (recall 1,00).
 4. Hybryda ma najwyższy recall (0,754, o 28 przeoczeń mniej niż reguły) kosztem precyzji.
    W kontekście bezpieczeństwa to korzystna wymiana: fałszywy alarm tylko zawęża wybór
@@ -249,8 +249,8 @@ Wyniki (`docs/experiments/contraindications.csv`):
 5. Żadna metoda nie jest wystarczająco dokładna, by działać bez człowieka: nawet hybryda
    przeocza ok. 1/4 przeciwwskazań. Najsłabiej wykrywane są staw skokowy, biodro i szyja,
    które zależą od szczegółów techniki, a nie od ogólnych cech ćwiczenia.
-6. Górną granicę trafności wyznaczają same dane: 114 ze 164 ćwiczeń ma identyczne cechy jak
-   inne ćwiczenie, a 80 z nich ma przy tym inne przeciwwskazania. Przykład: siedem izolowanych
+6. Górną granicę trafności wyznaczają same dane: 115 ze 164 ćwiczeń ma identyczne cechy jak
+   inne ćwiczenie, a 81 z nich ma przy tym inne przeciwwskazania. Przykład: siedem izolowanych
    ćwiczeń na nogi na maszynie dla początkujących ma te same cechy, a obciąża kolano (wyprosty,
    uginanie nóg), biodro (przywodzenie) albo staw skokowy (wspięcia na palce). Żadna metoda oparta na tych cechach
    nie rozróżni takich ćwiczeń; poprawa wymagałaby cech dokładniej opisujących ruch.
@@ -283,15 +283,15 @@ Wyniki: średnia z 5 ziaren (`docs/experiments/plan_quality.csv`).
 
 | Pominięte odpowiedzi | Klasyfikator     | Plan dla prawdziwego poziomu | Za trudny | Za łatwy | Ćwiczenie trudniejsze niż poziom | Podobieństwo ćwiczeń |
 |----------------------|------------------|------------------------------|-----------|----------|----------------------------------|----------------------|
-| 0%                   | System regułowy  | 0,813                        | 0,129     | 0,058    | 0,124                            | 0,880                |
-| 0%                   | Drzewo decyzyjne | 0,824                        | 0,085     | 0,091    | 0,080                            | 0,892                |
-| 0%                   | Sieć neuronowa   | 0,887                        | 0,057     | 0,056    | 0,054                            | 0,930                |
-| 60%                  | System regułowy  | 0,744                        | 0,120     | 0,136    | 0,113                            | 0,837                |
-| 60%                  | Drzewo decyzyjne | 0,710                        | 0,169     | 0,121    | 0,164                            | 0,814                |
-| 60%                  | Sieć neuronowa   | 0,817                        | 0,084     | 0,099    | 0,080                            | 0,887                |
-| 100%                 | System regułowy  | 0,696                        | 0,072     | 0,232    | 0,067                            | 0,800                |
-| 100%                 | Drzewo decyzyjne | 0,513                        | 0,316     | 0,172    | 0,309                            | 0,673                |
-| 100%                 | Sieć neuronowa   | 0,719                        | 0,127     | 0,154    | 0,122                            | 0,822                |
+| 0%                   | System regułowy  | 0,813                        | 0,129     | 0,058    | 0,124                            | 0,883                |
+| 0%                   | Drzewo decyzyjne | 0,824                        | 0,085     | 0,091    | 0,080                            | 0,895                |
+| 0%                   | Sieć neuronowa   | 0,887                        | 0,057     | 0,056    | 0,054                            | 0,932                |
+| 60%                  | System regułowy  | 0,744                        | 0,120     | 0,136    | 0,113                            | 0,840                |
+| 60%                  | Drzewo decyzyjne | 0,710                        | 0,169     | 0,121    | 0,164                            | 0,819                |
+| 60%                  | Sieć neuronowa   | 0,817                        | 0,084     | 0,099    | 0,080                            | 0,889                |
+| 100%                 | System regułowy  | 0,696                        | 0,072     | 0,232    | 0,067                            | 0,804                |
+| 100%                 | Drzewo decyzyjne | 0,513                        | 0,316     | 0,172    | 0,309                            | 0,678                |
+| 100%                 | Sieć neuronowa   | 0,719                        | 0,127     | 0,154    | 0,121                            | 0,826                |
 
 We wszystkich przebiegach liczba ćwiczeń przeciwwskazanych wyniosła **0**.
 
@@ -303,7 +303,7 @@ We wszystkich przebiegach liczba ćwiczeń przeciwwskazanych wyniosła **0**.
    obowiązkowym, a filtr przeciwwskazań działa niezależnie od klasyfikatora, więc żaden plan nie
    zawierał ćwiczenia przeciwwskazanego, nawet przy błędnie wyznaczonym poziomie.
 2. **Błędny poziom zmienia część planu.** Przy pełnych danych plany mają 88–93% wspólnych
-   ćwiczeń z planem wzorcowym, a przy samych danych podstawowych 67–82%. Generator wybiera
+   ćwiczeń z planem wzorcowym, a przy samych danych podstawowych 68–83%. Generator wybiera
    najpierw ćwiczenia o trudności najbliższej poziomowi, więc pomyłka o jeden poziom podmienia
    część ćwiczeń (i liczbę serii u początkujących). Wcześniejsza wersja generatora brała ćwiczenia
    w kolejności z atlasu i plany były bardziej podobne (81–96%), ale słabiej dopasowane do poziomu:

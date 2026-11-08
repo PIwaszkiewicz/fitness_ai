@@ -29,7 +29,7 @@ ENV DATABASE_URL=sqlite:////data/fitness_ai.db
 
 EXPOSE 8000
 
-# Przy starcie: wgranie atlasu ćwiczeń (pomija istniejące), potem serwer.
+# Przy starcie: wgranie atlasu ćwiczeń (dodaje brakujące, aktualizuje zmienione), potem serwer.
 # Host 0.0.0.0 sprawia, że serwer jest dostępny spoza kontenera.
 # Port pochodzi ze zmiennej PORT (ustawia ją platforma hostingowa, np. Render), domyślnie 8000.
 CMD ["sh", "-c", "python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

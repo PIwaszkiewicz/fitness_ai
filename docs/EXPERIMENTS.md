@@ -177,11 +177,11 @@ Wyniki (`docs/experiments/significance.csv`). W komórce: metoda lepsza w danej 
 grupa mięśniowa, sprzęt, trudność), np. przy dodawaniu do atlasu nowego ćwiczenia?
 
 **Metodyka:**
-- Wzorzec: ręczne etykiety przeciwwskazań 67 ćwiczeń atlasu (`app/data/exercises.json`).
+- Wzorzec: ręczne etykiety przeciwwskazań 164 ćwiczeń atlasu (`app/data/exercises.json`).
 - Walidacja krzyżowa *leave-one-out*: każde ćwiczenie po kolei jest traktowane jak nowe,
-  a detektor uczy się na pozostałych 66.
-- Każda para (ćwiczenie, ograniczenie) to jedna decyzja binarna, łącznie 670 decyzji
-  (108 przeciwwskazań w atlasie). Metryki: precyzja, recall, F1 (mikro) oraz liczba
+  a detektor uczy się na pozostałych 163.
+- Każda para (ćwiczenie, ograniczenie) to jedna decyzja binarna, łącznie 1640 decyzji
+  (268 przeciwwskazań w atlasie). Metryki: precyzja, recall, F1 (mikro) oraz liczba
   przeoczonych przeciwwskazań i fałszywych alarmów.
 - Porównane detektory (`app/ml/contraindication_detection.py`):
   - **reguły eksperckie:** 5 reguł opartych na budowie ćwiczenia (np. przysiad → kolano,
@@ -193,27 +193,37 @@ Wyniki (`docs/experiments/contraindications.csv`):
 
 | Detektor           | Precyzja | Recall | F1    | Przeoczone | Fałszywe alarmy | Całe ćwiczenie poprawnie |
 |--------------------|----------|--------|-------|------------|-----------------|--------------------------|
-| Reguły eksperckie  | 0,839    | 0,676  | 0,749 | 35         | 14              | 46%                      |
-| Drzewo decyzyjne   | 0,701    | 0,630  | 0,663 | 40         | 29              | 39%                      |
-| Hybryda (suma)     | 0,680    | 0,769  | 0,722 | 25         | 39              | 33%                      |
+| Reguły eksperckie  | 0,784    | 0,649  | 0,710 | 94         | 48              | 45%                      |
+| Drzewo decyzyjne   | 0,755    | 0,679  | 0,715 | 86         | 59              | 44%                      |
+| Hybryda (suma)     | 0,697    | 0,754  | 0,724 | 66         | 88              | 43%                      |
 
 ![Wykrywanie przeciwwskazań](experiments/contraindications.png)
 
 **Obserwacje:**
 
-1. Reguły eksperckie mają najlepszą precyzję i F1. Przy 67 przykładach drzewo nie ma z czego
-   nauczyć się zależności, które ekspert zapisuje w kilku regułach.
-2. Drzewo wygrywa tam, gdzie zależność jest prosta i spójna w atlasie: choroba serca
-   (recall 1,00 wobec 0,57 reguł) i staw skokowy.
-3. Hybryda ma najwyższy recall (0,769, o 10 przeoczeń mniej niż reguły) kosztem precyzji.
+1. Wszystkie trzy detektory mają zbliżone F1 (0,710–0,724), żaden nie jest wyraźnie lepszy.
+   Reguły zachowują najwyższą precyzję (najmniej fałszywych alarmów), a hybryda najwyższy recall.
+2. **Wpływ rozbudowy atlasu.** W pierwszej wersji atlasu (67 ćwiczeń) reguły miały wyraźnie
+   najwyższe F1 (0,749 wobec 0,663 drzewa). Po rozbudowie do 164 ćwiczeń F1 drzewa wzrosło
+   do 0,715, bo ma więcej przykładów do nauki, a F1 reguł spadło do 0,710. Metoda ucząca się
+   zyskuje na większym zbiorze danych, a reguły zapisane raz przez eksperta nie.
+3. **Reguły słabo uogólniają się na ćwiczenia, których autor nie przewidział.** Nowe ćwiczenia
+   ujawniły luki reguł, np. reguła „ćwiczenie izolowane na nogi → kolano” nie pasuje do wspięć
+   na palce (staw skokowy) ani przywodzenia nóg (biodro). Recall reguł dla stawu skokowego
+   spadł z 0,50 do 0,19, a precyzja dla kolana z 0,93 do 0,68. Drzewo wygrywa tam, gdzie atlas
+   zawiera wiele spójnych przykładów: łokieć (F1 0,85 wobec 0,75 reguł), nadgarstek i choroba
+   serca (recall 1,00).
+4. Hybryda ma najwyższy recall (0,754, o 28 przeoczeń mniej niż reguły) kosztem precyzji.
    W kontekście bezpieczeństwa to korzystna wymiana: fałszywy alarm tylko zawęża wybór
    ćwiczeń, a przeoczenie oznacza ryzyko kontuzji.
-4. Żadna metoda nie jest wystarczająco dokładna, by działać bez człowieka: nawet hybryda
-   przeocza ok. 1/4 przeciwwskazań. Najsłabiej wykrywane są biodro i nadgarstek, które zależą
-   od szczegółów techniki, a nie od ogólnych cech ćwiczenia.
-5. Górną granicę trafności wyznaczają same dane: 14 z 67 ćwiczeń ma identyczne cechy jak inne
-   ćwiczenie, a różne przeciwwskazania (np. przysiad goblet i przysiad sumo z kettlebell
-   różnią się obciążeniem biodra). Żadna metoda oparta na tych cechach nie rozróżni ich.
+5. Żadna metoda nie jest wystarczająco dokładna, by działać bez człowieka: nawet hybryda
+   przeocza ok. 1/4 przeciwwskazań. Najsłabiej wykrywane są staw skokowy, biodro i szyja,
+   które zależą od szczegółów techniki, a nie od ogólnych cech ćwiczenia.
+6. Górną granicę trafności wyznaczają same dane: 114 ze 164 ćwiczeń ma identyczne cechy jak
+   inne ćwiczenie, a 80 z nich ma przy tym inne przeciwwskazania. Przykład: siedem izolowanych
+   ćwiczeń na nogi na maszynie dla początkujących ma te same cechy, a obciąża kolano (wyprosty,
+   uginanie nóg), biodro (przywodzenie) albo staw skokowy (wspięcia na palce). Żadna metoda oparta na tych cechach
+   nie rozróżni takich ćwiczeń; poprawa wymagałaby cech dokładniej opisujących ruch.
 
 **Wniosek projektowy:** w aplikacji detektor hybrydowy służy wyłącznie jako **podpowiedź**
 przy dodawaniu ćwiczenia (`POST /api/v1/exercises/suggest-contraindications`). Plan treningowy
@@ -229,7 +239,7 @@ w planie nie przepuszcza żadnego ćwiczenia przeciwwskazanego według atlasu.
   cel, 2–5 dni treningowych, 30–90 minut, dostępny sprzęt (każdy rodzaj z prawdopodobieństwem 50%)
   i u połowy osób jedno lub dwa ograniczenia zdrowotne.
 - Dla każdej osoby generator buduje **plan wzorcowy** (dla prawdziwego poziomu) i plan dla poziomu
-  przewidzianego przez klasyfikator. Atlas: 67 ćwiczeń z `app/data/exercises.json`.
+  przewidzianego przez klasyfikator. Atlas: 164 ćwiczenia z `app/data/exercises.json`.
 - Metryki:
   - **plan dla prawdziwego poziomu:** część osób, których plan jest identyczny z wzorcowym,
   - **plan za trudny / za łatwy:** plan zbudowany dla wyższego / niższego poziomu,
@@ -243,15 +253,15 @@ Wyniki: średnia z 5 ziaren (`docs/experiments/plan_quality.csv`).
 
 | Pominięte odpowiedzi | Klasyfikator     | Plan dla prawdziwego poziomu | Za trudny | Za łatwy | Ćwiczenie trudniejsze niż poziom | Podobieństwo ćwiczeń |
 |----------------------|------------------|------------------------------|-----------|----------|----------------------------------|----------------------|
-| 0%                   | System regułowy  | 0,806                        | 0,149     | 0,045    | 0,127                            | 0,935                |
-| 0%                   | Drzewo decyzyjne | 0,825                        | 0,081     | 0,094    | 0,067                            | 0,943                |
-| 0%                   | Sieć neuronowa   | 0,879                        | 0,061     | 0,060    | 0,051                            | 0,961                |
-| 60%                  | System regułowy  | 0,732                        | 0,125     | 0,143    | 0,104                            | 0,909                |
-| 60%                  | Drzewo decyzyjne | 0,703                        | 0,168     | 0,129    | 0,150                            | 0,901                |
-| 60%                  | Sieć neuronowa   | 0,798                        | 0,093     | 0,109    | 0,079                            | 0,933                |
-| 100%                 | System regułowy  | 0,675                        | 0,068     | 0,257    | 0,055                            | 0,886                |
-| 100%                 | Drzewo decyzyjne | 0,484                        | 0,315     | 0,200    | 0,292                            | 0,820                |
-| 100%                 | Sieć neuronowa   | 0,648                        | 0,180     | 0,172    | 0,161                            | 0,882                |
+| 0%                   | System regułowy  | 0,806                        | 0,149     | 0,045    | 0,127                            | 0,928                |
+| 0%                   | Drzewo decyzyjne | 0,825                        | 0,081     | 0,094    | 0,067                            | 0,938                |
+| 0%                   | Sieć neuronowa   | 0,879                        | 0,061     | 0,060    | 0,051                            | 0,957                |
+| 60%                  | System regułowy  | 0,732                        | 0,125     | 0,143    | 0,104                            | 0,900                |
+| 60%                  | Drzewo decyzyjne | 0,703                        | 0,168     | 0,129    | 0,150                            | 0,891                |
+| 60%                  | Sieć neuronowa   | 0,798                        | 0,093     | 0,109    | 0,079                            | 0,926                |
+| 100%                 | System regułowy  | 0,675                        | 0,068     | 0,257    | 0,056                            | 0,875                |
+| 100%                 | Drzewo decyzyjne | 0,484                        | 0,315     | 0,200    | 0,292                            | 0,802                |
+| 100%                 | Sieć neuronowa   | 0,648                        | 0,180     | 0,172    | 0,161                            | 0,871                |
 
 We wszystkich przebiegach liczba ćwiczeń przeciwwskazanych wyniosła **0**.
 
@@ -263,7 +273,10 @@ We wszystkich przebiegach liczba ćwiczeń przeciwwskazanych wyniosła **0**.
    obowiązkowym, a filtr przeciwwskazań działa niezależnie od klasyfikatora, więc żaden plan nie
    zawierał ćwiczenia przeciwwskazanego, nawet przy błędnie wyznaczonym poziomie.
 2. **Błędny poziom zmienia plan w niewielkim stopniu.** Nawet przy samych danych podstawowych
-   plany mają 82–89% wspólnych ćwiczeń z planem wzorcowym. Ćwiczenia dla poziomu niższego są
+   plany mają 80–88% wspólnych ćwiczeń z planem wzorcowym. Po rozbudowie atlasu z 67 do 164
+   ćwiczeń podobieństwo spadło tylko o 0,4–1,8 punktu procentowego: przy większym wyborze
+   ćwiczeń zmiana poziomu częściej podmienia ćwiczenie na inne, ale trafność poziomu i odsetki
+   planów za trudnych i za łatwych są identyczne, bo zależą tylko od klasyfikatora. Ćwiczenia dla poziomu niższego są
    dostępne także na wyższych poziomach, więc pomyłka o jeden poziom zmienia tylko część ćwiczeń
    (i liczbę serii u początkujących).
 3. **Kierunek błędu zależy od metody.** System regułowy przy brakach danych częściej zaniża poziom
@@ -276,7 +289,8 @@ We wszystkich przebiegach liczba ćwiczeń przeciwwskazanych wyniosła **0**.
 
 **Wniosek projektowy:** przy kompletnych danych najlepsze plany daje sieć neuronowa, a przy
 bardzo niekompletnych system regułowy, który myli się „w bezpieczną stronę”. Uzasadnia to
-domyślny wybór sieci neuronowej i informowanie użytkownika o niskiej kompletności danych.
+dobór klasyfikatora do liczby pustych odpowiedzi w aplikacji: sieć neuronowa, a przy samych
+danych podstawowych system regułowy (opis w [ML.md](ML.md#uczenie-i-wyniki-wstępne)).
 
 ## Czas odpowiedzi API
 
@@ -286,7 +300,7 @@ klasyfikacja, generowanie planu i zamiana wyniku na JSON.
 
 **Metodyka** (`experiments/api_latency.py`):
 - Kompletny profil (wszystkie testy sprawności, ograniczenie kolana, 4 dni treningowe, sprzęt),
-  atlas 67 ćwiczeń w bazie SQLite.
+  atlas 164 ćwiczeń w bazie SQLite.
 - Dla każdego endpointu 5 żądań rozgrzewkowych (wczytanie modeli z dysku, połączenie), które nie
   są liczone, a potem właściwy pomiar.
 - Miary: średnia, mediana (p50), 95. percentyl (p95: 95% żądań było szybszych) i maksimum.
@@ -294,41 +308,52 @@ klasyfikacja, generowanie planu i zamiana wyniku na JSON.
   - **lokalnie:** aplikacja w tym samym procesie, bez sieci (200 żądań na endpoint),
     czyli czas pracy samego serwera,
   - **wdrożenie:** aplikacja na Render (plan darmowy, Frankfurt), żądania z komputera w Polsce
-    (30 żądań na endpoint, pomiar z 21.10.2026), czyli czas widziany przez użytkownika.
+    (30 żądań na endpoint, pomiar z 8.11.2026), czyli czas widziany przez użytkownika.
 
 Wyniki lokalne (`docs/experiments/api_latency.csv`), w milisekundach:
 
 | Żądanie                                   | Średnia | p50  | p95  | Maks. |
 |-------------------------------------------|---------|------|------|-------|
-| `GET /health`                             | 0,79    | 0,76 | 0,92 | 1,45  |
-| `GET /api/v1/questionnaire`               | 0,83    | 0,80 | 1,00 | 1,24  |
-| `POST /api/v1/questionnaire`              | 1,86    | 1,72 | 2,30 | 8,82  |
-| `GET .../fitness-level?method=rules`      | 1,74    | 1,68 | 1,96 | 3,17  |
-| `GET .../fitness-level?method=decision_tree` | 2,83 | 2,68 | 3,79 | 5,42  |
-| `GET .../fitness-level?method=mlp`        | 3,24    | 2,94 | 4,56 | 7,98  |
-| `GET .../plan?method=mlp`                 | 4,29    | 4,08 | 5,33 | 6,41  |
+| `GET /health`                             | 0,76    | 0,76 | 0,83 | 1,37  |
+| `GET /api/v1/questionnaire`               | 0,81    | 0,80 | 0,89 | 0,98  |
+| `POST /api/v1/questionnaire`              | 1,68    | 1,66 | 1,84 | 2,14  |
+| `GET .../fitness-level?method=rules`      | 1,71    | 1,68 | 1,93 | 2,22  |
+| `GET .../fitness-level?method=decision_tree` | 2,73 | 2,67 | 3,13 | 4,57  |
+| `GET .../fitness-level?method=mlp`        | 2,91    | 2,86 | 3,19 | 3,82  |
+| `GET .../plan?method=mlp`                 | 5,25    | 4,99 | 5,78 | 37,50 |
 
 Wyniki dla wdrożenia, w milisekundach:
 
 | Żądanie                                   | Średnia | p50  | p95   | Maks. |
 |-------------------------------------------|---------|------|-------|-------|
-| `GET /health`                             | 60      | 53   | 124   | 137   |
-| `POST /api/v1/questionnaire`              | 68      | 59   | 134   | 150   |
-| `GET .../fitness-level?method=rules`      | 63      | 55   | 122   | 141   |
-| `GET .../fitness-level?method=mlp`        | 96      | 65   | 182   | 431   |
-| `GET .../plan?method=mlp`                 | 100     | 96   | 171   | 228   |
+| `GET /health`                             | 66      | 53   | 140   | 148   |
+| `GET /api/v1/questionnaire`               | 59      | 52   | 106   | 137   |
+| `POST /api/v1/questionnaire`              | 64      | 57   | 117   | 130   |
+| `GET .../fitness-level?method=rules`      | 63      | 54   | 123   | 145   |
+| `GET .../fitness-level?method=decision_tree` | 74   | 59   | 141   | 147   |
+| `GET .../fitness-level?method=mlp`        | 80      | 70   | 133   | 138   |
+| `GET .../plan?method=mlp`                 | 146     | 99   | 380   | 817   |
+
+Powtórzony pomiar dał dla planu podobny wynik: mediana 106 ms, p95 285 ms, maksimum 333 ms.
 
 **Obserwacje:**
 
 1. Najcięższe żądanie, wygenerowanie planu z klasyfikacją siecią neuronową, zajmuje serwerowi
-   ok. 4 ms (p95 ok. 5 ms). Klasyfikacja sieci to ok. 0,5 ms (eksperyment 1), a resztę zajmują
-   baza danych, generowanie planu i obsługa HTTP.
+   ok. 5 ms (p95 ok. 6 ms). Klasyfikacja sieci to ok. 0,5 ms (eksperyment 1), a resztę zajmują
+   baza danych, generowanie planu i obsługa HTTP. Po rozbudowie atlasu z 67 do 164 ćwiczeń
+   czas planu wzrósł z ok. 4,3 do 5,3 ms, bo generator filtruje i układa więcej ćwiczeń.
+   Pojedyncze żądanie trwające 37,5 ms to jednorazowe opóźnienie (prawdopodobnie po stronie
+   systemu operacyjnego lub odśmiecania pamięci), a nie stała cecha endpointu: 95% żądań trwało poniżej 6 ms.
 2. Po wdrożeniu czas odpowiedzi to ok. 50–100 ms (mediana), z czego większość to sieć i serwer
-   z planu darmowego (pusty `GET /health` trwa ok. 53 ms). Wszystkie żądania mieszczą się poniżej
-   0,5 s, a 95% poniżej 0,2 s, czyli poniżej progu, który użytkownik odbiera jako natychmiastową
-   reakcję interfejsu (ok. 0,1–1 s).
-3. Wybór klasyfikatora praktycznie nie wpływa na czas odpowiedzi: różnica między regułami a siecią
-   to ok. 1,5 ms lokalnie i mieści się w zmienności sieci po wdrożeniu.
+   z planu darmowego (pusty `GET /health` trwa ok. 53 ms). Wszystkie żądania mieszczą się
+   poniżej 1 s, a 95% żądań poza planem w ok. 0,15 s, czyli w granicach, które użytkownik
+   odbiera jako natychmiastową reakcję interfejsu (ok. 0,1–1 s).
+3. Plan treningowy ma po wdrożeniu wyraźnie dłuższy „ogon” niż lokalnie (p95 0,3–0,4 s,
+   maksimum 0,8 s). Lokalnie plan jest tylko ok. 2 ms wolniejszy od klasyfikacji, więc różnicę
+   najprawdopodobniej tłumaczy słabszy, współdzielony procesor serwera w planie darmowym,
+   na którym praca generatora trwa wielokrotnie dłużej. Wybór klasyfikatora praktycznie nie wpływa na czas
+   odpowiedzi: różnica między regułami a siecią to ok. 1 ms lokalnie i mieści się w zmienności
+   sieci po wdrożeniu.
 4. Wyjątkiem jest pierwsze żądanie po uśpieniu serwera w planie darmowym (start kontenera,
    ok. 1 minuty). To ograniczenie planu hostingu, a nie aplikacji: w planie płatnym serwer
    nie jest usypiany.

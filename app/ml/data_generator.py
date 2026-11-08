@@ -8,6 +8,8 @@ Brak publicznego zbioru danych z wynikami testów i oceną sprawności sprawia,
    spada z wiekiem po 30. roku życia, plus losowe różnice między ludźmi.
 3. Z prawdziwej sprawności wyliczamy wyniki testów (pompki, przysiady, deska,
    tętno spoczynkowe) z losowym szumem, bo każdy test to niedokładny pomiar.
+   Część osób (tym częściej, im dłuższy staż) trenuje z ciężarami i ma też wskaźnik
+   siły względnej; u pozostałych ta cecha jest pusta.
 4. Etykieta (poziom sprawności) wynika z prawdziwej sprawności, której modele nie widzą.
    Klasyfikator musi więc odgadnąć poziom na podstawie zaszumionych pomiarów.
 
@@ -25,6 +27,9 @@ LEVEL_THRESHOLDS = (42, 60)
 
 # Rozkład poziomów aktywności w populacji (od siedzącego do bardzo wysokiego).
 ACTIVITY_PROBABILITIES = [0.25, 0.25, 0.25, 0.15, 0.10]
+
+# Odsetek osób trenujących z ciężarami w zależności od stażu (brak, <1 rok, 1–3 lata, >3 lata).
+LIFTING_PROBABILITIES = np.array([0.05, 0.3, 0.6, 0.8])
 
 
 def fitness_to_level(fitness: np.ndarray) -> np.ndarray:
@@ -101,6 +106,16 @@ def generate_dataset(
     plank_seconds = 2.2 * fitness + rng.normal(0, 20, n)
     resting_heart_rate = 85 - 0.3 * fitness + rng.normal(0, 6, n)
 
+    # Wskaźnik siły (1,0 = norma osoby średniozaawansowanej) rośnie ze sprawnością i stażem.
+    # Osobny generator losowy: dodanie tej cechy nie zmienia pozostałych danych ani braków,
+    # więc wyniki przed i po jej dodaniu dotyczą tych samych osób.
+    strength_rng = np.random.default_rng([seed, 1])
+    lifts = strength_rng.random(n) < LIFTING_PROBABILITIES[experience.astype(int)]
+    strength = np.clip(
+        0.25 + 0.01 * fitness + 0.05 * experience + strength_rng.normal(0, 0.12, n), 0.1, 3
+    )
+    strength_index = np.where(lifts, strength, np.nan)
+
     # Zakresy zgodne z walidacją kwestionariusza.
     X = pd.DataFrame({
         "age": age,
@@ -112,6 +127,7 @@ def generate_dataset(
         "squats": np.clip(np.round(squats), 0, 150),
         "plank_seconds": np.clip(np.round(plank_seconds), 0, 600),
         "resting_heart_rate": np.clip(np.round(resting_heart_rate), 30, 150),
+        "strength_index": strength_index,
     }, columns=FEATURES).astype(float)
 
     # Symulacja pominiętych pytań opcjonalnych

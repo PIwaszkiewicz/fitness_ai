@@ -13,6 +13,7 @@ from experiments.evaluation import (
     compare_classifiers,
     completeness_study,
     contraindication_study,
+    strength_feature_study,
     summarize,
 )
 from experiments.plan_quality import jaccard, plan_quality_study, random_preferences
@@ -71,6 +72,8 @@ def test_uruchomienie_eksperymentow(tmp_path, monkeypatch):
         "plan_quality.png",
         "tuning.csv",
         "significance.csv",
+        "strength.csv",
+        "strength.png",
     }
     assert {path.name for path in output.iterdir()} == expected
 
@@ -155,3 +158,12 @@ def test_pomiar_czasu_odpowiedzi_api(client, db_session, trained_models):
     assert (results["p50_ms"] > 0).all()
     assert (results["p50_ms"] <= results["p95_ms"]).all()
     assert (results["p95_ms"] <= results["max_ms"]).all()
+
+
+def test_wskaznik_sily_pomaga_trenujacym_przy_brakach():
+    results = strength_feature_study(seeds=[1], n_samples=2000)
+    assert len(results) == 3 * 2 * len(TEST_MISSING_RATES)
+    # Reguły nie mają losowości uczenia, więc na małych danych wynik jest stabilny.
+    rules = results[(results["classifier"] == "rules") & (results["test_missing_rate"] == 1.0)]
+    f1 = rules.set_index("variant")["f1_macro"]
+    assert f1["with_strength"] > f1["without_strength"]

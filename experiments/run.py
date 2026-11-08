@@ -17,6 +17,7 @@ from experiments.evaluation import (
     compare_classifiers,
     completeness_study,
     contraindication_study,
+    strength_feature_study,
     summarize,
 )
 from experiments.plan_quality import plan_quality_study
@@ -135,6 +136,25 @@ def plot_plan_quality(summary: pd.DataFrame, path: Path) -> None:
     figure.savefig(path, dpi=120)
 
 
+def plot_strength(summary: pd.DataFrame, path: Path) -> None:
+    """Rysuje F1 makro osób trenujących z ciężarami z wskaźnikiem siły i bez niego."""
+    figure = Figure(figsize=(15, 4.5))
+    axes = figure.subplots(1, 3, sharey=True)
+    for ax, (name, group) in zip(axes, summary.groupby("classifier", sort=False)):
+        for variant, label in [("with_strength", "z wskaźnikiem siły"),
+                               ("without_strength", "bez wskaźnika siły")]:
+            rows = group[group["variant"] == variant]
+            ax.errorbar(rows["test_missing_rate"] * 100, rows["f1_macro_mean"],
+                        yerr=rows["f1_macro_std"], marker="o", capsize=3, label=label)
+        ax.set_title(CLASSIFIER_NAMES[name])
+        ax.set_xlabel("Pominięte odpowiedzi opcjonalne [%]")
+        ax.grid(alpha=0.3)
+    axes[0].set_ylabel("F1 makro (osoby trenujące z ciężarami)")
+    axes[0].legend()
+    figure.tight_layout()
+    figure.savefig(path, dpi=120)
+
+
 def log_runs(experiment: str, results: pd.DataFrame, params: list[str], metrics: list[str]) -> None:
     """Zapisuje każdy wiersz wyników jako osobny przebieg (run) w MLflow."""
     mlflow.set_experiment(experiment)
@@ -193,6 +213,16 @@ def run_experiments(output_dir: Path, seeds: list[int], n_samples: int) -> None:
     with mlflow.start_run(run_name="wykres-jakosci-planu"):
         mlflow.log_artifact(str(output_dir / "plan_quality.png"))
 
+    # Eksperyment 5: wskaźnik siły z pytań o ciężary u osób trenujących
+    metrics = ["accuracy", "f1_macro"]
+    strength = strength_feature_study(seeds, n_samples)
+    strength_summary = summarize(strength, ["classifier", "variant", "test_missing_rate"], metrics)
+    strength_summary.round(4).to_csv(output_dir / "strength.csv", index=False)
+    plot_strength(strength_summary, output_dir / "strength.png")
+    log_runs("wskaznik-sily", strength, ["classifier", "variant", "seed", "test_missing_rate"], metrics)
+    with mlflow.start_run(run_name="wykres-wskaznika-sily"):
+        mlflow.log_artifact(str(output_dir / "strength.png"))
+
     # Test istotności różnic między klasyfikatorami (dane jak w eksperymencie 2)
     significance = significance_study(seeds, n_samples)
     significance.to_csv(output_dir / "significance.csv", index=False)
@@ -217,6 +247,8 @@ def run_experiments(output_dir: Path, seeds: list[int], n_samples: int) -> None:
     print(per_limitation.round(2).to_string(index=False))
     print()
     print(plan_quality_summary.round(3).to_string(index=False))
+    print()
+    print(strength_summary.round(3).to_string(index=False))
     print()
     print(tuning.round(3).to_string(index=False))
     print()

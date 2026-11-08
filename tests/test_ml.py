@@ -5,7 +5,13 @@ import pandas as pd
 import pytest
 
 from app.ml.data_generator import generate_dataset, remove_n_answers
-from app.ml.features import FEATURES, OPTIONAL_FEATURES, profile_to_features
+from app.ml.features import (
+    CONDITIONAL_FEATURES,
+    FEATURES,
+    KNEE_PUSHUP_FACTOR,
+    OPTIONAL_FEATURES,
+    profile_to_features,
+)
 from app.ml.models import build_decision_tree, build_mlp
 from app.ml.rule_based import RuleBasedClassifier
 from app.ml.train import average_runs, select_best, train_and_evaluate
@@ -42,7 +48,7 @@ def test_generator_usuwa_tylko_odpowiedzi_opcjonalne():
     X, _ = generate_dataset(4000, missing_rate=0.3)
     for column in OPTIONAL_FEATURES:
         assert 0.25 < X[column].isna().mean() < 0.35
-    required = [column for column in FEATURES if column not in OPTIONAL_FEATURES]
+    required = [c for c in FEATURES if c not in OPTIONAL_FEATURES + CONDITIONAL_FEATURES]
     assert not X[required].isna().any().any()
 
 
@@ -84,6 +90,14 @@ def test_system_regulowy(values, expected):
     assert RuleBasedClassifier().predict(make_row(**values))[0] == expected
 
 
+def test_system_regulowy_uwzglednia_sile():
+    rules = RuleBasedClassifier()
+    # Aktywność 2 daje 1 punkt. Wskaźnik siły powyżej normy dodaje 2 (średnia 1,5: zaawansowany),
+    # poniżej 0,7 dodaje 0 (średnia 0,5: początkujący).
+    assert rules.predict(make_row(activity_level=2, strength_index=1.2))[0] == "advanced"
+    assert rules.predict(make_row(activity_level=2, strength_index=0.5))[0] == "beginner"
+
+
 def test_system_regulowy_uwzglednia_wiek_przy_pompkach():
     # 12 pompek u 30-latka to poniżej progu (15), a u 60-latka już powyżej (15 * 0.7 = 10.5).
     young = make_row(activity_level=2, pushups=12)
@@ -121,7 +135,8 @@ def test_usuwanie_dokladnie_n_odpowiedzi():
     X, _ = generate_dataset(50)
     X_missing = remove_n_answers(X, 2, np.random.default_rng(0))
     assert (X_missing[OPTIONAL_FEATURES].isna().sum(axis=1) == 2).all()
-    assert X_missing.drop(columns=OPTIONAL_FEATURES).notna().all().all()  # dane podstawowe zostają
+    basic = X_missing.drop(columns=OPTIONAL_FEATURES + CONDITIONAL_FEATURES)
+    assert basic.notna().all().all()  # dane podstawowe zostają
 
 
 def test_usrednianie_powtorzen():
@@ -129,3 +144,33 @@ def test_usrednianie_powtorzen():
     averaged = average_runs(runs)[0]["mlp"]
     assert averaged["f1_macro"] == pytest.approx(0.7)
     assert averaged["f1_macro_std"] == pytest.approx(0.1)
+
+
+def test_wskaznik_sily_maja_glownie_osoby_ze_stazem():
+    X, _ = generate_dataset(4000)
+    lifters = X["strength_index"].notna().groupby(X["training_experience"]).mean()
+    assert lifters[0] < 0.1 < lifters[1] < lifters[2] < lifters[3]
+
+
+def test_dodanie_wskaznika_sily_nie_zmienia_pozostalych_danych():
+    # Wskaźnik siły ma osobny generator losowy, więc pozostałe cechy i braki są takie jak wcześniej.
+    X, _ = generate_dataset(300, missing_rate=0.2, seed=3)
+    assert X["pushups"].isna().sum() == 57  # wartość sprzed dodania wskaźnika siły
+
+
+def test_pompki_z_kolan_przeliczane_na_klasyczne():
+    answers = {"age": 30, "gender": "female", "height_cm": 170, "weight_kg": 65,
+               "training_goal": "strength", "activity_level": "moderate", "pushups": 20}
+    knees = profile_to_features(UserProfileCreate(**answers, pushup_variant="knees")).iloc[0]
+    classic = profile_to_features(UserProfileCreate(**answers, pushup_variant="classic")).iloc[0]
+    assert classic["pushups"] == 20
+    assert knees["pushups"] == pytest.approx(20 * KNEE_PUSHUP_FACTOR)
+
+
+def test_wskaznik_sily_z_profilu():
+    # Mężczyzna 80 kg, przysiad 100 kg × 1 = 1,25 × masa ciała, czyli dokładnie norma.
+    profile = UserProfileCreate(
+        age=30, gender="male", height_cm=180, weight_kg=80, training_goal="strength",
+        activity_level="active", lifts_weights=True, squat_kg=100, squat_reps=1,
+    )
+    assert profile_to_features(profile).iloc[0]["strength_index"] == pytest.approx(1.0)

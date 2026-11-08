@@ -15,6 +15,8 @@ PUSHUP_LIMITS = {"male": (15, 30), "female": (8, 20)}
 SQUAT_LIMITS = (25, 40)  # przysiady w 1 minutę
 PLANK_LIMITS = (60, 120)  # sekundy
 RESTING_HR_LIMITS = (65, 81)  # tętno: im niższe, tym lepiej (punkty odwrócone)
+# Wskaźnik siły względnej: 1,0 to norma osoby średniozaawansowanej (app/services/strength.py).
+STRENGTH_LIMITS = (0.7, 1.0)
 # Od 50. roku życia normy dla pompek są niższe o 30%.
 SENIOR_AGE = 50
 SENIOR_FACTOR = 0.7
@@ -67,6 +69,8 @@ class RuleBasedClassifier:
             scores.append(points(row["plank_seconds"], PLANK_LIMITS))
         if not pd.isna(row["resting_heart_rate"]):
             scores.append(2 - points(row["resting_heart_rate"], RESTING_HR_LIMITS))
+        if not pd.isna(row["strength_index"]):
+            scores.append(points(row["strength_index"], STRENGTH_LIMITS))
 
         average = sum(scores) / len(scores)
         if average < LEVEL_LIMITS[0]:

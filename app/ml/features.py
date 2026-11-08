@@ -7,7 +7,8 @@ zamieniamy na liczby porządkowe (np. poziom aktywności 0–4), a brak odpowied
 import numpy as np
 import pandas as pd
 
-from app.models.enums import ActivityLevel, Gender, TrainingExperience
+from app.models.enums import ActivityLevel, Gender, PushupVariant, TrainingExperience
+from app.services.strength import strength_index
 
 # Kolejność kolumn, której oczekują wszystkie modele.
 FEATURES = [
@@ -20,10 +21,18 @@ FEATURES = [
     "squats",
     "plank_seconds",
     "resting_heart_rate",
+    "strength_index",
 ]
 
-# Cechy pochodzące z pytań opcjonalnych, które mogą być puste.
+# Cechy pochodzące z pytań opcjonalnych, które każdy może pominąć.
 OPTIONAL_FEATURES = ["training_experience", "pushups", "squats", "plank_seconds", "resting_heart_rate"]
+# Cechy z pytań, które widzi tylko część osób (wskaźnik siły: tylko trenujący z ciężarami).
+# Ich brak nie jest pominięciem odpowiedzi, dlatego nie liczy się do pustych odpowiedzi.
+CONDITIONAL_FEATURES = ["strength_index"]
+
+# Pompki z kolan obciążają ok. 49% masy ciała, a klasyczne ok. 64% (Ebben i in., 2011).
+# Wynik z kolan przeliczamy na równoważną liczbę pompek klasycznych.
+KNEE_PUSHUP_FACTOR = 0.49 / 0.64
 
 # Kolejność wartości w enumach odpowiada rosnącemu poziomowi (indeks = liczba porządkowa).
 ACTIVITY_ORDER = list(ActivityLevel)
@@ -41,10 +50,15 @@ def profile_to_features(profile) -> pd.DataFrame:
         "training_experience": (
             EXPERIENCE_ORDER.index(TrainingExperience(experience)) if experience else np.nan
         ),
-        "pushups": profile.pushups,
+        "pushups": (
+            profile.pushups * KNEE_PUSHUP_FACTOR
+            if profile.pushups is not None and profile.pushup_variant == PushupVariant.KNEES
+            else profile.pushups
+        ),
         "squats": profile.squats,
         "plank_seconds": profile.plank_seconds,
         "resting_heart_rate": profile.resting_heart_rate,
+        "strength_index": strength_index(profile),
     }
     # astype(float) zamienia brakujące odpowiedzi (None) na NaN.
     return pd.DataFrame([row], columns=FEATURES).astype(float)

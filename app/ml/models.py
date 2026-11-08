@@ -29,17 +29,18 @@ def build_decision_tree(seed: int = 42) -> Pipeline:
 
 
 def build_mlp(seed: int = 42) -> Pipeline:
-    """Sieć neuronowa (perceptron wielowarstwowy) z dwiema warstwami ukrytymi: 32 i 16 neuronów.
+    """Sieć neuronowa (perceptron wielowarstwowy) z jedną warstwą ukrytą 32 neuronów.
 
     StandardScaler sprowadza cechy do podobnej skali, bez czego sieć uczy się źle.
     early_stopping przerywa uczenie, gdy wynik na części walidacyjnej przestaje rosnąć.
-    Rozmiar warstw potwierdzono walidacją krzyżową (experiments/tuning.py).
+    Rozmiar warstw dobrano walidacją krzyżową (experiments/tuning.py): po dodaniu wskaźnika
+    siły wcześniejsza sieć (32, 16) wypadła poza regułą jednego odchylenia.
     """
     return Pipeline([
         ("imputer", missing_values_imputer()),
         ("scaler", StandardScaler()),
         ("model", MLPClassifier(
-            hidden_layer_sizes=(32, 16),
+            hidden_layer_sizes=(32,),
             max_iter=1000,
             early_stopping=True,
             random_state=seed,

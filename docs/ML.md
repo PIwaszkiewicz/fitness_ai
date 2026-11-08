@@ -13,12 +13,33 @@ i sieć neuronowa (perceptron wielowarstwowy).
 | `bmi`                 | wzrost i masa ciała                           | masa / wzrost² (m)            |
 | `activity_level`      | poziom aktywności                             | 0 (siedzący) – 4 (b. wysoki)  |
 | `training_experience` | staż treningowy (opcjonalne)                  | 0 (brak) – 3 (ponad 3 lata)   |
-| `pushups`             | pompki bez przerwy (opcjonalne)               | liczba                        |
+| `pushups`             | pompki bez przerwy (opcjonalne)               | liczba; z kolan · 0,77*       |
 | `squats`              | przysiady w 1 minutę (opcjonalne)             | liczba                        |
 | `plank_seconds`       | czas deski (opcjonalne)                       | sekundy                       |
 | `resting_heart_rate`  | tętno spoczynkowe (opcjonalne)                | uderzenia/min                 |
+| `strength_index`      | serie w 5 ćwiczeniach z ciężarami (tylko trenujący) | wskaźnik siły względnej** |
 
 Brak odpowiedzi na pytanie opcjonalne jest zapisywany jako wartość brakująca (NaN).
+
+\* Pompki z kolan obciążają ok. 49% masy ciała, a klasyczne ok. 64% (Ebben i in., 2011), więc
+wynik z kolan przeliczany jest na równoważną liczbę pompek klasycznych (· 0,49 / 0,64 ≈ 0,77).
+
+\*\* Wskaźnik siły (`app/services/strength.py`): dla każdego podanego ćwiczenia 1RM ze wzoru Epleya
+dzielony jest przez masę ciała i przez normę osoby średniozaawansowanej dla danej płci, a wyniki
+są uśredniane. 1,0 oznacza poziom normy, 0,5 połowę normy. Normy (1RM / masa ciała):
+
+| Ćwiczenie                   | Mężczyźni | Kobiety |
+|-----------------------------|-----------|---------|
+| przysiad ze sztangą         | 1,25      | 1,0     |
+| martwy ciąg                 | 1,5       | 1,25    |
+| wyciskanie sztangi leżąc    | 1,0       | 0,65    |
+| wyciskanie nad głowę        | 0,65      | 0,45    |
+| podciąganie (z masą ciała)  | 1,3       | 1,0     |
+
+Uśrednienie sprawia, że wskaźnik działa przy dowolnej liczbie podanych ćwiczeń, a modele dostają
+jedną cechę zamiast kilku silnie ze sobą powiązanych. Brak wskaźnika u osób, które nie trenują
+z ciężarami, nie jest pominięciem odpowiedzi, dlatego nie liczy się do pustych odpowiedzi
+(`CONDITIONAL_FEATURES` w `app/ml/features.py`).
 
 ## Generator danych syntetycznych
 
@@ -43,9 +64,14 @@ tylko zaszumione wyniki testów, tak jak w rzeczywistości.
    - przysiady: 0,55·*S* + 5 − 0,1·max(wiek − 40, 0) + N(0, 5),
    - deska: 2,2·*S* + N(0, 20) sekund,
    - tętno spoczynkowe: 85 − 0,3·*S* + N(0, 6).
-5. Etykieta: *S* < 42 → `beginner`, 42 ≤ *S* < 60 → `intermediate`, *S* ≥ 60 → `advanced`.
+5. Wskaźnik siły: osoba trenuje z ciężarami z prawdopodobieństwem zależnym od stażu
+   (5%, 30%, 60%, 80% dla stażu 0–3, łącznie ok. 1/3 osób). U trenujących
+   wskaźnik = 0,25 + 0,01·*S* + 0,05·*E* + N(0; 0,12), obcięty do 0,1–3; u pozostałych brak.
+   Wskaźnik jest losowany osobnym generatorem liczb losowych, więc jego dodanie nie zmieniło
+   pozostałych cech ani braków (te same osoby co w pierwszej wersji danych).
+6. Etykieta: *S* < 42 → `beginner`, 42 ≤ *S* < 60 → `intermediate`, *S* ≥ 60 → `advanced`.
    Daje to zbliżone liczności klas (ok. 35% / 31% / 34%).
-6. Braki danych: każda odpowiedź opcjonalna jest usuwana z prawdopodobieństwem `missing_rate`.
+7. Braki danych: każda odpowiedź opcjonalna jest usuwana z prawdopodobieństwem `missing_rate`.
 
 Ten sam `seed` zawsze daje te same dane, co zapewnia powtarzalność eksperymentów.
 
@@ -62,6 +88,7 @@ Ten sam `seed` zawsze daje te same dane, co zapewnia powtarzalność eksperyment
 | przysiady / min       | < 25           | 25–39        | ≥ 40          |
 | deska                 | < 60 s         | 60–119 s     | ≥ 120 s       |
 | tętno spoczynkowe     | > 80           | 65–80        | < 65          |
+| wskaźnik siły         | < 0,7          | 0,7–0,99     | ≥ 1,0         |
 
 Od 50. roku życia progi dla pompek są obniżone o 30%. Średnia punktów poniżej 2/3 oznacza
 poziom `beginner`, poniżej 4/3 `intermediate`, w pozostałych przypadkach `advanced`.
@@ -76,8 +103,9 @@ więc system regułowy nie ma z góry zagwarantowanej trafności.
 medianą z dodaniem kolumn 0/1 oznaczających brak (`SimpleImputer(add_indicator=True)`).
 
 - **Drzewo decyzyjne:** głębokość maks. 6, min. 5 próbek w liściu (ograniczenie przeuczenia).
-- **Sieć neuronowa (MLP):** standaryzacja cech, warstwy ukryte 32 i 16 neuronów,
-  wczesne zatrzymanie uczenia (`early_stopping`).
+- **Sieć neuronowa (MLP):** standaryzacja cech, jedna warstwa ukryta 32 neuronów,
+  wczesne zatrzymanie uczenia (`early_stopping`). Do czasu dodania wskaźnika siły stosowano
+  dwie warstwy (32 i 16 neuronów); zmianę opisuje dobór hiperparametrów.
 
 Ustawienia dobrano walidacją krzyżową (`experiments/tuning.py`, opis w
 [EXPERIMENTS.md](EXPERIMENTS.md#dobór-hiperparametrów)).
@@ -89,9 +117,13 @@ podział 75% / 25% ze stratyfikacją, `seed = 42`.
 
 | Klasyfikator       | Accuracy | F1 makro |
 |--------------------|----------|----------|
-| System regułowy    | 0,794    | 0,792    |
-| Drzewo decyzyjne   | 0,821    | 0,817    |
-| Sieć neuronowa     | 0,861    | 0,857    |
+| System regułowy    | 0,804    | 0,802    |
+| Drzewo decyzyjne   | 0,816    | 0,812    |
+| Sieć neuronowa     | 0,834    | 0,829    |
+
+Wynik sieci na tym jednym podziale jest niższy niż średnia z pięciu powtórzeń eksperymentu 1
+(F1 makro 0,856 ± 0,012). Pojedynczy podział jest bardziej zależny od losowania, dlatego
+porównanie metod opiera się na eksperymentach z wieloma powtórzeniami.
 
 Szczegółowe porównanie (macierze pomyłek, wpływ kompletności danych, wiele powtórzeń):
 [EXPERIMENTS.md](EXPERIMENTS.md).
@@ -107,16 +139,20 @@ Wybór i metryki trafiają do `app/ml/artifacts/best_classifier.json`.
 
 | Puste odpowiedzi | System regułowy | Drzewo decyzyjne | Sieć neuronowa | Wybrany  |
 |------------------|-----------------|------------------|----------------|----------|
-| 0                | 0,805 ± 0,010   | 0,823 ± 0,012    | 0,875 ± 0,006  | sieć     |
-| 1                | 0,791 ± 0,005   | 0,811 ± 0,009    | 0,862 ± 0,006  | sieć     |
-| 2                | 0,760 ± 0,012   | 0,792 ± 0,016    | 0,841 ± 0,005  | sieć     |
-| 3                | 0,714 ± 0,019   | 0,734 ± 0,024    | 0,813 ± 0,007  | sieć     |
-| 4                | 0,663 ± 0,008   | 0,626 ± 0,070    | 0,761 ± 0,004  | sieć     |
-| 5                | 0,654 ± 0,008   | 0,392 ± 0,201    | 0,650 ± 0,038  | reguły   |
+| 0                | 0,809 ± 0,014   | 0,825 ± 0,010    | 0,865 ± 0,013  | sieć     |
+| 1                | 0,794 ± 0,008   | 0,814 ± 0,009    | 0,854 ± 0,013  | sieć     |
+| 2                | 0,765 ± 0,011   | 0,793 ± 0,014    | 0,833 ± 0,008  | sieć     |
+| 3                | 0,722 ± 0,016   | 0,741 ± 0,026    | 0,803 ± 0,015  | sieć     |
+| 4                | 0,695 ± 0,006   | 0,646 ± 0,067    | 0,768 ± 0,008  | sieć     |
+| 5                | 0,675 ± 0,003   | 0,452 ± 0,194    | 0,678 ± 0,036  | sieć     |
 
-Przy samych danych podstawowych (5 pustych) system regułowy i sieć różnią się nieznacznie,
-ale reguły dają wynik stabilniejszy (mniejsze odchylenie), co jest zgodne z eksperymentem 2
-w [EXPERIMENTS.md](EXPERIMENTS.md#eksperyment-2-wpływ-kompletności-danych).
+Przy samych danych podstawowych (5 pustych) system regułowy i sieć różnią się nieznacznie
+(0,675 wobec 0,678), ale reguły dają wynik stabilniejszy (mniejsze odchylenie). W pierwszej
+wersji, bez wskaźnika siły, przy 5 pustych odpowiedziach wybierany był system regułowy
+(0,654 wobec 0,650). Wskaźnik siły podniósł wynik sieci u osób trenujących z ciężarami
+(eksperyment 5 w [EXPERIMENTS.md](EXPERIMENTS.md)), więc teraz sieć jest wybierana dla każdej
+liczby braków. Mechanizm doboru pozostaje: przełączy klasyfikator, jeśli po zmianie danych lub
+modeli w ocenie wygra inny.
 
 Aplikacja liczy puste odpowiedzi w profilu użytkownika i klasyfikuje go klasyfikatorem wybranym
 dla tej liczby. Gdy pliku nie ma (modele niewytrenowane), używany jest system regułowy.

@@ -4,6 +4,9 @@ Użytkownik nie musi znać swojego 1RM (ciężaru, który podniesie raz) ani go 
 co byłoby ryzykowne. Podaje ostatnią serię roboczą: ciężar i liczbę powtórzeń,
 a 1RM szacuje wzór Epleya. Wzór jest dokładny dla serii do ok. 10 powtórzeń,
 dlatego kwestionariusz przyjmuje 1–10 powtórzeń.
+
+Dla klasyfikatorów wyniki łączone są w jeden wskaźnik siły względnej (strength_index):
+1RM podzielony przez masę ciała i odniesiony do normy dla płci, uśredniony po ćwiczeniach.
 """
 
 from dataclasses import dataclass
@@ -32,6 +35,17 @@ LIFTS = [
 ]
 
 
+# Norma siły względnej (1RM / masa ciała) dla osoby średniozaawansowanej w treningu siłowym.
+# Wartości przybliżone na podstawie popularnych tabel norm siłowych; wymagają źródła
+# (docs/ZRODLA.md). Przy podciąganiu 1RM obejmuje masę ciała, więc 1,0 to jedno podciągnięcie.
+STRENGTH_NORMS = {
+    "male": {"squat": 1.25, "deadlift": 1.5, "bench_press": 1.0, "overhead_press": 0.65,
+             "pull_up": 1.3},
+    "female": {"squat": 1.0, "deadlift": 1.25, "bench_press": 0.65, "overhead_press": 0.45,
+               "pull_up": 1.0},
+}
+
+
 def epley_one_rep_max(weight_kg: float, reps: int) -> float:
     """Wzór Epleya: 1RM = ciężar · (1 + powtórzenia / 30). Jedno powtórzenie to już 1RM."""
     if reps == 1:
@@ -54,3 +68,18 @@ def estimate_one_rep_maxes(profile) -> dict[str, float]:
             weight += profile.weight_kg
         result[lift.name] = round(epley_one_rep_max(weight, reps), 1)
     return result
+
+
+def strength_index(profile) -> float | None:
+    """Średnia siła względna odniesiona do normy: 1,0 to poziom normy, 0,5 połowa normy.
+
+    Każde ćwiczenie dzielone jest przez masę ciała i normę dla płci, więc wyniki różnych
+    ćwiczeń są porównywalne i można je uśrednić. Działa przy dowolnej liczbie podanych
+    ćwiczeń (od 1 do 5). Zwraca None, gdy użytkownik nie podał żadnej serii.
+    """
+    maxes = estimate_one_rep_maxes(profile)
+    if not maxes:
+        return None
+    norms = STRENGTH_NORMS[profile.gender]
+    ratios = [one_rep_max / profile.weight_kg / norms[name] for name, one_rep_max in maxes.items()]
+    return sum(ratios) / len(ratios)

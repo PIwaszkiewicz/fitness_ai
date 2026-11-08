@@ -2,6 +2,7 @@
 a zapis do MLflow i wykresy obsługuje experiments/run.py.
 """
 
+import warnings
 from time import perf_counter
 
 import numpy as np
@@ -111,6 +112,52 @@ def completeness_study(seeds: list[int], n_samples: int) -> pd.DataFrame:
                     "accuracy": accuracy_score(y_test, predicted),
                     "f1_macro": f1_score(y_test, predicted, average="macro"),
                 })
+    return pd.DataFrame(rows)
+
+
+def evaluate_strength_variant(variant, X_train, y_train, X_test, y_test, seed) -> list[dict]:
+    """Uczy klasyfikatory jednym wariantem danych i ocenia je przy rosnących brakach."""
+    classifiers = {name: build(seed).fit(X_train, y_train) for name, build in CLASSIFIERS.items()}
+    rows = []
+    for missing_rate in TEST_MISSING_RATES:
+        X_incomplete = remove_answers(X_test, missing_rate, np.random.default_rng(seed))
+        if variant == "without_strength":
+            X_incomplete = X_incomplete.assign(strength_index=np.nan)
+        for name, classifier in classifiers.items():
+            predicted = classifier.predict(X_incomplete)
+            rows.append({
+                "classifier": name,
+                "variant": variant,
+                "seed": seed,
+                "test_missing_rate": missing_rate,
+                "accuracy": accuracy_score(y_test, predicted),
+                "f1_macro": f1_score(y_test, predicted, average="macro"),
+            })
+    return rows
+
+
+def strength_feature_study(seeds: list[int], n_samples: int) -> pd.DataFrame:
+    """Eksperyment 5: czy wskaźnik siły z pytań o ciężary poprawia klasyfikację osób trenujących.
+
+    Każdy klasyfikator jest uczony dwa razy na tych samych danych: z wskaźnikiem siły
+    i bez niego (cecha wyczyszczona). Oba warianty są oceniane tylko na osobach trenujących
+    z ciężarami, bo tylko one odpowiadają na te pytania, przy rosnącym odsetku pominiętych
+    pozostałych odpowiedzi (jak w eksperymencie 2).
+    """
+    rows = []
+    for seed in seeds:
+        rng = np.random.default_rng(seed)
+        X_train, X_test, y_train, y_test = split_data(n_samples, seed)
+        X_train = remove_answers(X_train, TRAIN_MISSING_RATE, rng)
+        lifters = X_test["strength_index"].notna().to_numpy()
+        variants = {"with_strength": X_train, "without_strength": X_train.assign(strength_index=np.nan)}
+        for variant, X_variant in variants.items():
+            with warnings.catch_warnings():
+                # Bez wskaźnika siły imputer ostrzega o pustej kolumnie, co jest tu zamierzone.
+                warnings.simplefilter("ignore", UserWarning)
+                rows += evaluate_strength_variant(
+                    variant, X_variant, y_train, X_test[lifters], y_test[lifters], seed
+                )
     return pd.DataFrame(rows)
 
 

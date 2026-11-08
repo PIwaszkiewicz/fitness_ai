@@ -7,6 +7,7 @@ import pytest
 from app.services.strength import (
     LIFTS,
     epley_one_rep_max,
+    estimate_all_one_rep_maxes,
     estimate_one_rep_maxes,
     starting_load,
 )
@@ -48,3 +49,20 @@ def test_ciezar_startowy_przy_podciaganiu():
     assert starting_load(99, 6, body_weight=80) == "masa ciała"
     # Za słaby na 12 podciągnięć z masą ciała: potrzebna asysta.
     assert starting_load(88, 12, body_weight=80) == "masa ciała, z asystą gumy"
+
+
+def test_ciezar_startowy_dla_hantli():
+    # 1RM jednego hantla 40 kg, 10 powtórzeń + 2: 40 / 1,4 ≈ 28,6 → 28 kg (krok 2 kg).
+    assert starting_load(40, 10, step=2, implements=2) == "2 × 28 kg"
+    assert starting_load(3, 12, step=2) == "2 kg"  # nie mniej niż jeden krok
+
+
+def test_brakujace_1rm_szacowane_ze_wskaznika_sily():
+    # Przysiad 100 kg × 1 przy 80 kg masy ciała to dokładnie norma (wskaźnik 1,0),
+    # więc wyciskanie leżąc szacujemy na normę: 1,0 · 80 kg.
+    p = profile(squat_kg=100, squat_reps=1)
+    p.gender = "male"
+    maxes = estimate_all_one_rep_maxes(p)
+    assert maxes["squat"] == 100
+    assert maxes["bench_press"] == pytest.approx(80)
+    assert estimate_all_one_rep_maxes(profile()) == {}

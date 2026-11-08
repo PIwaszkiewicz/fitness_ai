@@ -50,6 +50,8 @@ Priorytety:
 | B18 | `app/ml/features.py` (`KNEE_PUSHUP_FACTOR`) | pompki z kolan ok. 49% masy ciała, klasyczne ok. 64% | przeliczenie pompek z kolan na klasyczne | Ebben i in., *Kinetic analysis of several variations of push-ups*, J Strength Cond Res 2011 |
 | B19 | `app/ml/rule_based.py` (`STRENGTH_LIMITS`) | wskaźnik siły: < 0,7 słaby, ≥ 1,0 dobry | progi punktów za siłę | wynika z norm B17 (1,0 = norma osoby średniozaawansowanej); próg 0,7 to założenie projektowe |
 | B20 | `app/ml/data_generator.py` (`LIFTING_PROBABILITIES`, wskaźnik siły) | odsetek trenujących z ciężarami 5–80% zależnie od stażu; wzór wskaźnika siły | założenia generatora danych | założenie projektowe (jak pozostałe wzory generatora); ewentualnie dane o popularności treningu siłowego, np. Bennie i in., *Muscle-strengthening exercise among 397,423 U.S. adults*, Am J Prev Med 2018 |
+| B21 | `app/data/load_ratios.py` | przeliczniki 1RM między ćwiczeniami, np. przysiad przedni 0,8 · przysiad, wiosłowanie 0,75 · wyciskanie leżąc, wyciskanie hantli 0,37 · wyciskanie leżąc na hantel | proporcje obciążeń między ćwiczeniami | brak jednego źródła dla wszystkich par; dla części: Kilgore, Rippetoe (jak B17); proporcje ćwiczeń izolowanych to założenie projektowe – w pracy opisać jako heurystykę, a ciężar jako wskazówkę do sprawdzenia |
+| B22 | `app/services/strength.py` (`LOAD_STEPS_KG`) | zaokrąglenie: sztanga 2,5 kg, hantle 2 kg, kettlebell 4 kg, maszyna 5 kg | typowe przyrosty obciążenia sprzętu | założenie na podstawie typowego wyposażenia siłowni (krążki 1,25 kg, hantle co 2 kg, kettlebell co 4 kg) |
 
 ## C. Metodyka badań
 

@@ -145,7 +145,10 @@ QUESTIONS = [
              text="Czy regularnie trenujesz z wolnymi ciężarami (sztanga)?", type="boolean",
              required=False,
              hint="Jeśli tak, podaj dla wybranych ćwiczeń ostatnią serię roboczą (ciężar i liczbę "
-                  "powtórzeń, 1–10). Nie wykonuj w tym celu testu ciężaru maksymalnego."),
+                  "powtórzeń, 1–10). Nie wykonuj w tym celu testu ciężaru maksymalnego. "
+                  "Dzięki tym odpowiedziom plan poda ciężar startowy przy każdym ćwiczeniu "
+                  "z obciążeniem. To wskazówka: ciężar trzeba sprawdzić i dopasować indywidualnie "
+                  "w pierwszej serii."),
     *lift_questions(),
     # Preferencje treningowe
     Question(id="training_days_per_week", section=PREFERENCES,

@@ -16,6 +16,9 @@ class PlanExercise(BaseModel):
     sets: int
     reps: str  # zakres powtórzeń, np. "8–12"
     rest_seconds: int
+    # Ciężar startowy, np. "62,5 kg" ("+5 kg" lub "masa ciała" przy podciąganiu).
+    # Tylko przy ćwiczeniach, dla których użytkownik podał serię w kwestionariuszu.
+    load: str | None = None
 
 
 class PlanDay(BaseModel):

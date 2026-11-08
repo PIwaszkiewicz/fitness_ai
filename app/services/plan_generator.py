@@ -7,7 +7,8 @@ Kroki:
 3. Liczba ćwiczeń w treningu wyliczona z czasu, jaki użytkownik ma na trening.
 4. Rozpisanie dni: przy 1–3 dniach trening całego ciała, przy 4–7 podział góra/dół.
    Ćwiczenia rotują między dniami, żeby plan był zróżnicowany.
-5. Rekomendacje progresji i ostrzeżenia zdrowotne.
+5. Ciężary startowe przy ćwiczeniach, dla których użytkownik podał serię z ciężarem.
+6. Rekomendacje progresji i ostrzeżenia zdrowotne.
 
 Ten sam profil zawsze daje ten sam plan (brak losowości), więc plan można odtworzyć.
 """
@@ -24,6 +25,14 @@ from app.models.enums import (
 from app.schemas import ExerciseRead, UserProfileRead
 from app.schemas.plan import PlanDay, PlanExercise, TrainingPlan
 from app.services.questionnaire_service import build_warnings
+from app.services.strength import (
+    ATLAS_LIFTS,
+    LIFTS,
+    estimate_one_rep_maxes,
+    starting_load,
+)
+
+ADDS_BODY_WEIGHT = {lift.name for lift in LIFTS if lift.adds_body_weight}
 
 # Wartości przyjmowane, gdy użytkownik nie odpowiedział na pytania o preferencje.
 DEFAULT_DAYS_PER_WEEK = 3
@@ -143,6 +152,20 @@ def build_days(pool: list[ExerciseRead], days_per_week: int, count: int) -> list
     return days
 
 
+def exercise_load(exercise: ExerciseRead, profile: UserProfileRead, reps: str) -> str | None:
+    """Ciężar startowy ćwiczenia albo None, gdy nie znamy 1RM użytkownika w tym ćwiczeniu.
+
+    Ciężar dobierany jest do górnej granicy zakresu powtórzeń (np. 12 przy "8–12").
+    """
+    lift = ATLAS_LIFTS.get(exercise.name)
+    one_rep_max = estimate_one_rep_maxes(profile).get(lift)
+    if one_rep_max is None:
+        return None
+    top_reps = int(reps.split("–")[-1])
+    body_weight = profile.weight_kg if lift in ADDS_BODY_WEIGHT else None
+    return starting_load(one_rep_max, top_reps, body_weight)
+
+
 def weight_loss_tips(profile: UserProfileRead) -> list[str]:
     """Wskazówki redukcyjne. Przy chorobach układu krążenia dochodzi zalecenie konsultacji."""
     tips = list(WEIGHT_LOSS_TIPS)
@@ -154,6 +177,12 @@ def weight_loss_tips(profile: UserProfileRead) -> list[str]:
 def progression_tips(profile: UserProfileRead, level: FitnessLevel) -> list[str]:
     """Rekomendacje, jak zwiększać trudność treningu w kolejnych tygodniach."""
     tips = []
+    if estimate_one_rep_maxes(profile):
+        tips.append(
+            "Ciężary przy ćwiczeniach z kwestionariusza wyliczono z podanych serii tak, żeby "
+            "w każdej serii zostały około 2 powtórzenia w zapasie. Jeśli ciężar jest za trudny, "
+            "zmniejsz go."
+        )
     if level == FitnessLevel.BEGINNER:
         tips.append(
             "Przez pierwsze 2–3 tygodnie skup się na technice. Dobieraj ciężar tak, "
@@ -211,6 +240,7 @@ def generate_plan(
                     name=exercise.name,
                     muscle_group=exercise.muscle_group,
                     equipment=exercise.equipment,
+                    load=exercise_load(exercise, profile, params["reps"]),
                     **params,
                 )
                 for exercise in chosen

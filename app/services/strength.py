@@ -7,6 +7,7 @@ dlatego kwestionariusz przyjmuje 1–10 powtórzeń.
 
 Dla klasyfikatorów wyniki łączone są w jeden wskaźnik siły względnej (strength_index):
 1RM podzielony przez masę ciała i odniesiony do normy dla płci, uśredniony po ćwiczeniach.
+Z 1RM generator planu wylicza też ciężary startowe (starting_load).
 """
 
 from dataclasses import dataclass
@@ -34,6 +35,21 @@ LIFTS = [
     Lift("pull_up", "Podciąganie na drążku", 0, 150, adds_body_weight=True),
 ]
 
+
+# Ćwiczenia z atlasu (app/data/exercises.json), które odpowiadają pytaniom o ciężary.
+# Tylko przy nich plan podaje ciężar: przeliczanie 1RM na inne odmiany (np. hantle)
+# byłoby zgadywaniem, którego nie da się uzasadnić.
+ATLAS_LIFTS = {
+    "Przysiad ze sztangą": "squat",
+    "Martwy ciąg klasyczny": "deadlift",
+    "Wyciskanie sztangi na ławce płaskiej": "bench_press",
+    "Wyciskanie sztangi nad głowę": "overhead_press",
+    "Podciąganie na drążku": "pull_up",
+}
+# Powtórzenia w zapasie przy doborze ciężaru (jak zalecenie 2–3 w planie, docs/ZRODLA.md B10).
+REPS_IN_RESERVE = 2
+# Ciężar zaokrąglany w dół do 2,5 kg, czyli do najmniejszej typowej zmiany obciążenia sztangi.
+LOAD_STEP_KG = 2.5
 
 # Norma siły względnej (1RM / masa ciała) dla osoby średniozaawansowanej w treningu siłowym.
 # Wartości przybliżone na podstawie popularnych tabel norm siłowych; wymagają źródła
@@ -83,3 +99,23 @@ def strength_index(profile) -> float | None:
     norms = STRENGTH_NORMS[profile.gender]
     ratios = [one_rep_max / profile.weight_kg / norms[name] for name, one_rep_max in maxes.items()]
     return sum(ratios) / len(ratios)
+
+
+def starting_load(one_rep_max: float, reps: int, body_weight: float | None = None) -> str:
+    """Ciężar startowy do serii o podanej liczbie powtórzeń, jako tekst do planu.
+
+    Odwrotny wzór Epleya podaje ciężar, który da się podnieść reps + REPS_IN_RESERVE razy,
+    więc w serii zostają powtórzenia w zapasie. Przy podciąganiu (body_weight podane)
+    wynikiem jest obciążenie dodatkowe ponad masę ciała. Gdy wychodzi wyraźnie mniej niż
+    masa ciała, użytkownik nie wykona tylu powtórzeń bez pomocy, więc zalecana jest asysta gumy.
+    """
+    load = one_rep_max / (1 + (reps + REPS_IN_RESERVE) / 30)
+    if body_weight is not None:
+        load -= body_weight
+        if load <= -LOAD_STEP_KG:
+            return "masa ciała, z asystą gumy"
+        if load < LOAD_STEP_KG:
+            return "masa ciała"
+    load = load // LOAD_STEP_KG * LOAD_STEP_KG
+    text = f"{load:g}".replace(".", ",") + " kg"
+    return "+" + text if body_weight is not None else text

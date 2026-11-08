@@ -269,7 +269,8 @@ function renderDay(day) {
         <td>${escapeHtml(exercise.name)}<br>
           <span class="muted">${escapeHtml(optionLabel("available_equipment", exercise.equipment))}</span></td>
         <td>${MUSCLE_GROUP_NAMES[exercise.muscle_group]}</td>
-        <td>${exercise.sets} × ${escapeHtml(exercise.reps)}</td>
+        <td>${exercise.sets} × ${escapeHtml(exercise.reps)}${exercise.load
+          ? `<br><span class="muted">${escapeHtml(exercise.load)}</span>` : ""}</td>
         <td>${exercise.rest_seconds} s</td>
       </tr>`)
     .join("");

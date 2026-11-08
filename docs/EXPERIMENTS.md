@@ -283,15 +283,15 @@ Wyniki: średnia z 5 ziaren (`docs/experiments/plan_quality.csv`).
 
 | Pominięte odpowiedzi | Klasyfikator     | Plan dla prawdziwego poziomu | Za trudny | Za łatwy | Ćwiczenie trudniejsze niż poziom | Podobieństwo ćwiczeń |
 |----------------------|------------------|------------------------------|-----------|----------|----------------------------------|----------------------|
-| 0%                   | System regułowy  | 0,813                        | 0,129     | 0,058    | 0,112                            | 0,931                |
-| 0%                   | Drzewo decyzyjne | 0,824                        | 0,085     | 0,091    | 0,069                            | 0,938                |
-| 0%                   | Sieć neuronowa   | 0,887                        | 0,057     | 0,056    | 0,048                            | 0,960                |
-| 60%                  | System regułowy  | 0,744                        | 0,120     | 0,136    | 0,099                            | 0,905                |
-| 60%                  | Drzewo decyzyjne | 0,710                        | 0,169     | 0,121    | 0,150                            | 0,892                |
-| 60%                  | Sieć neuronowa   | 0,817                        | 0,084     | 0,099    | 0,070                            | 0,934                |
-| 100%                 | System regułowy  | 0,696                        | 0,072     | 0,232    | 0,057                            | 0,883                |
-| 100%                 | Drzewo decyzyjne | 0,513                        | 0,316     | 0,172    | 0,290                            | 0,808                |
-| 100%                 | Sieć neuronowa   | 0,719                        | 0,127     | 0,154    | 0,110                            | 0,897                |
+| 0%                   | System regułowy  | 0,813                        | 0,129     | 0,058    | 0,124                            | 0,880                |
+| 0%                   | Drzewo decyzyjne | 0,824                        | 0,085     | 0,091    | 0,080                            | 0,892                |
+| 0%                   | Sieć neuronowa   | 0,887                        | 0,057     | 0,056    | 0,054                            | 0,930                |
+| 60%                  | System regułowy  | 0,744                        | 0,120     | 0,136    | 0,113                            | 0,837                |
+| 60%                  | Drzewo decyzyjne | 0,710                        | 0,169     | 0,121    | 0,164                            | 0,814                |
+| 60%                  | Sieć neuronowa   | 0,817                        | 0,084     | 0,099    | 0,080                            | 0,887                |
+| 100%                 | System regułowy  | 0,696                        | 0,072     | 0,232    | 0,067                            | 0,800                |
+| 100%                 | Drzewo decyzyjne | 0,513                        | 0,316     | 0,172    | 0,309                            | 0,673                |
+| 100%                 | Sieć neuronowa   | 0,719                        | 0,127     | 0,154    | 0,122                            | 0,822                |
 
 We wszystkich przebiegach liczba ćwiczeń przeciwwskazanych wyniosła **0**.
 
@@ -302,13 +302,16 @@ We wszystkich przebiegach liczba ćwiczeń przeciwwskazanych wyniosła **0**.
 1. **Bezpieczeństwo nie zależy od kompletności danych.** Ograniczenia zdrowotne są pytaniem
    obowiązkowym, a filtr przeciwwskazań działa niezależnie od klasyfikatora, więc żaden plan nie
    zawierał ćwiczenia przeciwwskazanego, nawet przy błędnie wyznaczonym poziomie.
-2. **Błędny poziom zmienia plan w niewielkim stopniu.** Nawet przy samych danych podstawowych
-   plany mają 81–90% wspólnych ćwiczeń z planem wzorcowym. Ćwiczenia dla poziomu niższego są
-   dostępne także na wyższych poziomach, więc pomyłka o jeden poziom zmienia tylko część ćwiczeń
-   (i liczbę serii u początkujących).
+2. **Błędny poziom zmienia część planu.** Przy pełnych danych plany mają 88–93% wspólnych
+   ćwiczeń z planem wzorcowym, a przy samych danych podstawowych 67–82%. Generator wybiera
+   najpierw ćwiczenia o trudności najbliższej poziomowi, więc pomyłka o jeden poziom podmienia
+   część ćwiczeń (i liczbę serii u początkujących). Wcześniejsza wersja generatora brała ćwiczenia
+   w kolejności z atlasu i plany były bardziej podobne (81–96%), ale słabiej dopasowane do poziomu:
+   osoba zaawansowana mogła dostać np. przysiad z masą ciała zamiast przysiadu ze sztangą.
+   Silniejsze dopasowanie planu do poziomu sprawia więc, że błąd klasyfikacji bardziej go zmienia.
 3. **Kierunek błędu zależy od metody.** System regułowy przy brakach danych częściej zaniża poziom
-   (przy 100% braków 23% planów za łatwych i tylko 6% z ćwiczeniem za trudnym). Sieć przy 100%
-   braków myli się w obie strony (13% za trudnych, 15% za łatwych), a drzewo decyzyjne aż u 29% osób
+   (przy 100% braków 23% planów za łatwych i tylko 7% z ćwiczeniem za trudnym). Sieć przy 100%
+   braków myli się w obie strony (13% za trudnych, 15% za łatwych), a drzewo decyzyjne aż u 31% osób
    daje ćwiczenie trudniejsze niż ich poziom. Z punktu widzenia bezpieczeństwa plan za łatwy jest
    lepszy niż za trudny.
 4. Przy pełnych danych system regułowy częściej zawyża poziom (13% planów za trudnych) niż modele
@@ -318,7 +321,7 @@ We wszystkich przebiegach liczba ćwiczeń przeciwwskazanych wyniosła **0**.
 
 **Wniosek projektowy:** najlepiej dopasowane plany daje sieć neuronowa. Przy samych danych
 podstawowych sieć częściej trafia w poziom (72% wobec 70% u reguł), ale reguły mylą się
-„w bezpieczną stronę” (6% planów z za trudnym ćwiczeniem wobec 11% u sieci). Przy bardzo
+„w bezpieczną stronę” (7% planów z za trudnym ćwiczeniem wobec 12% u sieci). Przy bardzo
 niekompletnych danych warto więc brać pod uwagę nie tylko trafność, ale i kierunek błędu, oraz
 informować użytkownika o niskiej kompletności danych.
 

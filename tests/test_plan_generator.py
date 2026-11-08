@@ -2,6 +2,7 @@
 
 import pytest
 
+from app.data.load_ratios import LOAD_RATIOS
 from app.ml.predictor import ClassifierName
 from app.models.enums import FitnessLevel
 from app.schemas import ExerciseRead, UserProfileRead
@@ -152,23 +153,59 @@ def plan_loads(plan) -> dict[str, str | None]:
     return {exercise.name: exercise.load for day in plan.days for exercise in day.exercises}
 
 
+LIFTER = {"gender": "male", "weight_kg": 80, "training_experience": "more_than_3_years",
+          "lifts_weights": True, "squat_kg": 100, "squat_reps": 5}
+
+
 def test_ciezary_startowe_przy_cwiczeniach_z_podana_seria():
-    # Mężczyzna 80 kg, przysiad 100 kg × 5 (1RM ≈ 116,7 kg); cel siła: serie 4–6.
-    plan = plan_for(
-        FitnessLevel.ADVANCED, gender="male", weight_kg=80, training_goal="strength",
-        available_equipment=["barbell"], lifts_weights=True, squat_kg=100, squat_reps=5,
-    )
+    # Przysiad 100 kg × 5 (1RM ≈ 116,7 kg); cel siła: serie 4–6.
+    plan = plan_for(FitnessLevel.ADVANCED, training_goal="strength",
+                    available_equipment=["barbell"], **LIFTER)
     loads = plan_loads(plan)
     assert loads["Przysiad ze sztangą"] == "90 kg"  # 116,7 / (1 + 8/30) ≈ 92,1 → 90 kg
-    # Bez podanej serii nie ma ciężaru, także przy innych odmianach przysiadu.
-    assert all(load is None for name, load in loads.items() if name != "Przysiad ze sztangą")
-    assert any("powtórzenia w zapasie" in tip for tip in plan.progression)
+    # Pozostałe ćwiczenia ze sztangą też mają ciężar, oszacowany ze wskaźnika siły.
+    assert all(load is not None for load in loads.values())
+    assert any("wskazówka" in tip for tip in plan.progression)
+
+
+def test_ciezar_z_przelicznika_dla_hantli():
+    plan = plan_for(FitnessLevel.ADVANCED, training_goal="strength",
+                    available_equipment=["dumbbells"], **LIFTER)
+    loads = plan_loads(plan)
+    assert loads  # są ćwiczenia z hantlami
+    # Ćwiczenia z dwoma hantlami: „2 × N kg”, ciężar zaokrąglony do 2 kg.
+    pairs = [load for load in loads.values() if load and load.startswith("2 × ")]
+    assert pairs and all(int(load.split()[2]) % 2 == 0 for load in pairs)
+
+
+def test_przeliczniki_dla_wszystkich_cwiczen_z_obciazeniem():
+    # Każde ćwiczenie z obciążeniem (poza gumą i cardio) ma w tabeli przelicznik lub None.
+    loaded = {
+        e.name for e in ATLAS
+        if e.equipment not in ("none", "resistance_band") and e.movement_pattern != "cardio"
+    }
+    assert loaded == set(LOAD_RATIOS)
+    lifts = {lift.name for lift in LIFTS}
+    assert all(r.lift in lifts and 0 < r.ratio <= 2 for r in LOAD_RATIOS.values() if r)
+
+
+def test_trenujacy_bez_odpowiedzi_o_sprzet_dostaje_sztange():
+    plan = plan_for(FitnessLevel.ADVANCED, **LIFTER)  # brak odpowiedzi o sprzęt
+    first_day = [exercise.name for exercise in plan.days[0].exercises]
+    assert first_day[0] == "Przysiad ze sztangą"
+    assert "Przysiad z masą ciała" not in plan_loads(plan)
+
+
+def test_cwiczenia_z_obciazeniem_przed_cwiczeniami_z_masa_ciala():
+    plan = plan_for(FitnessLevel.ADVANCED, available_equipment=["dumbbells"])
+    first = plan.days[0].exercises[0]
+    assert first.muscle_group == "legs" and first.equipment == "dumbbells"
 
 
 def test_bez_serii_plan_nie_podaje_ciezarow():
     plan = plan_for(FitnessLevel.ADVANCED, available_equipment=["barbell"])
     assert all(load is None for load in plan_loads(plan).values())
-    assert not any("wyliczono z podanych serii" in tip for tip in plan.progression)
+    assert not any("wskazówka" in tip for tip in plan.progression)
 
 
 def test_cwiczenia_z_ciezarem_sa_w_atlasie():

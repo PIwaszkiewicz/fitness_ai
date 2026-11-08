@@ -2,17 +2,21 @@
 
 Kroki:
 1. Wybór ćwiczeń dopuszczonych dla użytkownika: dostępny sprzęt, poziom trudności
-   zgodny z poziomem sprawności i brak przeciwwskazań (bezpieczeństwo).
+   zgodny z poziomem sprawności i brak przeciwwskazań (bezpieczeństwo). Ćwiczenia są
+   uporządkowane: osoby trenujące z ciężarami dostają najpierw główne ćwiczenia ze sztangą,
+   ćwiczenia z obciążeniem mają pierwszeństwo przed ćwiczeniami z masą ciała, a trudność
+   bliższa poziomowi użytkownika przed łatwiejszą.
 2. Parametry treningu (serie, powtórzenia, przerwy) według celu treningowego.
 3. Liczba ćwiczeń w treningu wyliczona z czasu, jaki użytkownik ma na trening.
 4. Rozpisanie dni: przy 1–3 dniach trening całego ciała, przy 4–7 podział góra/dół.
    Ćwiczenia rotują między dniami, żeby plan był zróżnicowany.
-5. Ciężary startowe przy ćwiczeniach, dla których użytkownik podał serię z ciężarem.
+5. Ciężary startowe przy ćwiczeniach z obciążeniem, wyliczone z serii podanych w kwestionariuszu.
 6. Rekomendacje progresji i ostrzeżenia zdrowotne.
 
 Ten sam profil zawsze daje ten sam plan (brak losowości), więc plan można odtworzyć.
 """
 
+from app.data.load_ratios import LOAD_RATIOS
 from app.ml.predictor import ClassifierName
 from app.models.enums import (
     CARDIOVASCULAR_LIMITATIONS,
@@ -28,11 +32,16 @@ from app.services.questionnaire_service import build_warnings
 from app.services.strength import (
     ATLAS_LIFTS,
     LIFTS,
-    estimate_one_rep_maxes,
+    LOAD_STEPS_KG,
+    estimate_all_one_rep_maxes,
     starting_load,
 )
 
 ADDS_BODY_WEIGHT = {lift.name for lift in LIFTS if lift.adds_body_weight}
+# Ćwiczenia z kwestionariusza wykonywane ze sztangą (podciąganie wymaga drążka).
+BARBELL_LIFTS = {lift.name for lift in LIFTS if not lift.adds_body_weight}
+DIFFICULTY_ORDER = list(Difficulty)
+LEVEL_ORDER = list(FitnessLevel)
 
 # Wartości przyjmowane, gdy użytkownik nie odpowiedział na pytania o preferencje.
 DEFAULT_DAYS_PER_WEEK = 3
@@ -99,17 +108,47 @@ def is_safe(exercise: ExerciseRead, limitations: list[str]) -> bool:
     return not set(exercise.contraindications) & set(limitations)
 
 
+def available_equipment(profile: UserProfileRead) -> set[Equipment]:
+    """Sprzęt, z którego może korzystać użytkownik. Ćwiczenia z masą ciała są dostępne zawsze.
+
+    Gdy użytkownik nie odpowiedział na pytanie o sprzęt, ale podał serie ze sztangą
+    lub podciąganie, zakładamy dostęp do sztangi lub drążka, bo na nich trenuje.
+    """
+    equipment = set(profile.available_equipment or []) | {Equipment.NONE}
+    if profile.available_equipment is None:
+        if any(getattr(profile, f"{name}_kg") is not None for name in BARBELL_LIFTS):
+            equipment.add(Equipment.BARBELL)
+        if profile.pull_up_kg is not None:
+            equipment.add(Equipment.PULL_UP_BAR)
+    return equipment
+
+
+def exercise_priority(exercise: ExerciseRead, lifter: bool, level: FitnessLevel) -> tuple:
+    """Klucz sortowania ćwiczeń: mniejszy oznacza wyższy priorytet w planie.
+
+    1. Osoba trenująca z ciężarami: najpierw główne ćwiczenia ze sztangą (z kwestionariusza).
+    2. Ćwiczenia z obciążeniem przed ćwiczeniami z masą ciała (bodziec rośnie razem z ciężarem).
+    3. Trudność bliższa poziomowi użytkownika przed łatwiejszą.
+    """
+    is_main_lift = lifter and exercise.name in ATLAS_LIFTS
+    gap = LEVEL_ORDER.index(level) - DIFFICULTY_ORDER.index(exercise.difficulty)
+    return (not is_main_lift, exercise.equipment == Equipment.NONE, gap)
+
+
 def select_exercises(
     exercises: list[ExerciseRead], profile: UserProfileRead, level: FitnessLevel
 ) -> tuple[list[ExerciseRead], int]:
-    """Zwraca ćwiczenia dopuszczone dla użytkownika i liczbę odrzuconych z powodu przeciwwskazań."""
-    # Ćwiczenia z masą ciała są dostępne zawsze.
-    equipment = set(profile.available_equipment or []) | {Equipment.NONE}
+    """Zwraca dopuszczone ćwiczenia w kolejności priorytetu i liczbę odrzuconych z powodu
+    przeciwwskazań."""
+    equipment = available_equipment(profile)
     matching = [
         exercise for exercise in exercises
         if exercise.equipment in equipment and exercise.difficulty in ALLOWED_DIFFICULTIES[level]
     ]
     safe = [exercise for exercise in matching if is_safe(exercise, profile.limitations)]
+    lifter = bool(estimate_all_one_rep_maxes(profile))
+    # Sortowanie jest stabilne: przy równym priorytecie zostaje kolejność z atlasu.
+    safe.sort(key=lambda exercise: exercise_priority(exercise, lifter, level))
     return safe, len(matching) - len(safe)
 
 
@@ -153,17 +192,27 @@ def build_days(pool: list[ExerciseRead], days_per_week: int, count: int) -> list
 
 
 def exercise_load(exercise: ExerciseRead, profile: UserProfileRead, reps: str) -> str | None:
-    """Ciężar startowy ćwiczenia albo None, gdy nie znamy 1RM użytkownika w tym ćwiczeniu.
+    """Ciężar startowy ćwiczenia z obciążeniem albo None, gdy nie da się go oszacować.
 
-    Ciężar dobierany jest do górnej granicy zakresu powtórzeń (np. 12 przy "8–12").
+    1RM ćwiczenia = przelicznik z app/data/load_ratios.py · 1RM ćwiczenia odniesienia
+    (podany w kwestionariuszu albo oszacowany ze wskaźnika siły). Ciężar dobierany jest
+    do górnej granicy zakresu powtórzeń (np. 12 przy "8–12").
     """
-    lift = ATLAS_LIFTS.get(exercise.name)
-    one_rep_max = estimate_one_rep_maxes(profile).get(lift)
-    if one_rep_max is None:
+    ratio = LOAD_RATIOS.get(exercise.name)
+    one_rep_maxes = estimate_all_one_rep_maxes(profile)
+    if ratio is None or not one_rep_maxes:
         return None
+    one_rep_max = ratio.ratio * one_rep_maxes[ratio.lift]
     top_reps = int(reps.split("–")[-1])
-    body_weight = profile.weight_kg if lift in ADDS_BODY_WEIGHT else None
-    return starting_load(one_rep_max, top_reps, body_weight)
+    # Na drążku dźwiga się masę ciała, więc podajemy tylko obciążenie dodatkowe.
+    on_bar = exercise.equipment == Equipment.PULL_UP_BAR
+    return starting_load(
+        one_rep_max,
+        top_reps,
+        body_weight=profile.weight_kg if on_bar else None,
+        step=LOAD_STEPS_KG[exercise.equipment],
+        implements=ratio.implements,
+    )
 
 
 def weight_loss_tips(profile: UserProfileRead) -> list[str]:
@@ -177,11 +226,12 @@ def weight_loss_tips(profile: UserProfileRead) -> list[str]:
 def progression_tips(profile: UserProfileRead, level: FitnessLevel) -> list[str]:
     """Rekomendacje, jak zwiększać trudność treningu w kolejnych tygodniach."""
     tips = []
-    if estimate_one_rep_maxes(profile):
+    if estimate_all_one_rep_maxes(profile):
         tips.append(
-            "Ciężary przy ćwiczeniach z kwestionariusza wyliczono z podanych serii tak, żeby "
-            "w każdej serii zostały około 2 powtórzenia w zapasie. Jeśli ciężar jest za trudny, "
-            "zmniejsz go."
+            "Ciężary w planie to wskazówka wyliczona z serii podanych w kwestionariuszu, tak żeby "
+            "w każdej serii zostały około 2 powtórzenia w zapasie. Sprawdź ciężar w pierwszej serii "
+            "i dopasuj go do siebie: zmniejsz, jeśli technika się psuje, zwiększ, jeśli zapas jest "
+            "większy."
         )
     if level == FitnessLevel.BEGINNER:
         tips.append(

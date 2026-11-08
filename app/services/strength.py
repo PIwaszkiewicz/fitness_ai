@@ -7,7 +7,8 @@ dlatego kwestionariusz przyjmuje 1–10 powtórzeń.
 
 Dla klasyfikatorów wyniki łączone są w jeden wskaźnik siły względnej (strength_index):
 1RM podzielony przez masę ciała i odniesiony do normy dla płci, uśredniony po ćwiczeniach.
-Z 1RM generator planu wylicza też ciężary startowe (starting_load).
+Z 1RM generator planu wylicza też ciężary startowe (starting_load) dla wszystkich ćwiczeń
+z obciążeniem, przez przeliczniki z app/data/load_ratios.py.
 """
 
 from dataclasses import dataclass
@@ -37,8 +38,7 @@ LIFTS = [
 
 
 # Ćwiczenia z atlasu (app/data/exercises.json), które odpowiadają pytaniom o ciężary.
-# Tylko przy nich plan podaje ciężar: przeliczanie 1RM na inne odmiany (np. hantle)
-# byłoby zgadywaniem, którego nie da się uzasadnić.
+# Osobom trenującym z ciężarami generator planu daje je w pierwszej kolejności.
 ATLAS_LIFTS = {
     "Przysiad ze sztangą": "squat",
     "Martwy ciąg klasyczny": "deadlift",
@@ -48,8 +48,9 @@ ATLAS_LIFTS = {
 }
 # Powtórzenia w zapasie przy doborze ciężaru (jak zalecenie 2–3 w planie, docs/ZRODLA.md B10).
 REPS_IN_RESERVE = 2
-# Ciężar zaokrąglany w dół do 2,5 kg, czyli do najmniejszej typowej zmiany obciążenia sztangi.
-LOAD_STEP_KG = 2.5
+# Ciężar zaokrąglany w dół do najmniejszej typowej zmiany obciążenia danego sprzętu:
+# sztanga 2,5 kg (dwa krążki po 1,25 kg), hantle co 2 kg, kettlebell co 4 kg, maszyna co 5 kg.
+LOAD_STEPS_KG = {"barbell": 2.5, "dumbbells": 2.0, "kettlebell": 4.0, "machine": 5.0, "pull_up_bar": 2.5}
 
 # Norma siły względnej (1RM / masa ciała) dla osoby średniozaawansowanej w treningu siłowym.
 # Wartości przybliżone na podstawie popularnych tabel norm siłowych; wymagają źródła
@@ -101,21 +102,50 @@ def strength_index(profile) -> float | None:
     return sum(ratios) / len(ratios)
 
 
-def starting_load(one_rep_max: float, reps: int, body_weight: float | None = None) -> str:
+def estimate_all_one_rep_maxes(profile) -> dict[str, float]:
+    """1RM wszystkich pięciu ćwiczeń: podane wprost albo oszacowane ze wskaźnika siły.
+
+    Gdy użytkownik podał np. tylko przysiad, 1RM pozostałych ćwiczeń szacujemy tak, jakby
+    miał w nich tę samą siłę względną: wskaźnik siły · norma ćwiczenia · masa ciała.
+    Zwraca pusty słownik, gdy nie podano żadnej serii.
+    """
+    index = strength_index(profile)
+    if index is None:
+        return {}
+    norms = STRENGTH_NORMS[profile.gender]
+    estimated = {lift.name: round(index * norms[lift.name] * profile.weight_kg, 1) for lift in LIFTS}
+    return estimated | estimate_one_rep_maxes(profile)
+
+
+def format_kg(value: float) -> str:
+    """Liczba kilogramów w polskim zapisie, np. 62,5."""
+    return f"{value:g}".replace(".", ",")
+
+
+def starting_load(
+    one_rep_max: float,
+    reps: int,
+    body_weight: float | None = None,
+    step: float = LOAD_STEPS_KG["barbell"],
+    implements: int = 1,
+) -> str:
     """Ciężar startowy do serii o podanej liczbie powtórzeń, jako tekst do planu.
 
     Odwrotny wzór Epleya podaje ciężar, który da się podnieść reps + REPS_IN_RESERVE razy,
-    więc w serii zostają powtórzenia w zapasie. Przy podciąganiu (body_weight podane)
-    wynikiem jest obciążenie dodatkowe ponad masę ciała. Gdy wychodzi wyraźnie mniej niż
-    masa ciała, użytkownik nie wykona tylu powtórzeń bez pomocy, więc zalecana jest asysta gumy.
+    więc w serii zostają powtórzenia w zapasie. Wynik zaokrąglany jest w dół do kroku `step`
+    (co najmniej jeden krok). Przy dwóch hantlach wynik ma postać „2 × 16 kg”.
+    Przy podciąganiu (body_weight podane) wynikiem jest obciążenie dodatkowe ponad masę ciała.
+    Gdy wychodzi wyraźnie mniej niż masa ciała, użytkownik nie wykona tylu powtórzeń bez pomocy,
+    więc zalecana jest asysta gumy.
     """
     load = one_rep_max / (1 + (reps + REPS_IN_RESERVE) / 30)
     if body_weight is not None:
         load -= body_weight
-        if load <= -LOAD_STEP_KG:
+        if load <= -step:
             return "masa ciała, z asystą gumy"
-        if load < LOAD_STEP_KG:
+        if load < step:
             return "masa ciała"
-    load = load // LOAD_STEP_KG * LOAD_STEP_KG
-    text = f"{load:g}".replace(".", ",") + " kg"
-    return "+" + text if body_weight is not None else text
+        return f"+{format_kg(load // step * step)} kg"
+    load = max(step, load // step * step)
+    prefix = f"{implements} × " if implements > 1 else ""
+    return f"{prefix}{format_kg(load)} kg"

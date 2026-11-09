@@ -34,7 +34,7 @@ Każdy krok realizowany jest na osobnej gałęzi i scalany do `main` przez pull 
 ## Rozszerzenia aplikacji
 
 - [x] Dobór klasyfikatora do liczby pustych odpowiedzi (średnia z 5 powtórzeń oceny)
-- [x] Pytania o ciężary w 5 ćwiczeniach ze sztangą (seria zamiast 1RM, wzór Epleya) i wariant pompek
+- [x] Pytania o ciężary w 5 podstawowych ćwiczeniach siłowych (seria zamiast 1RM, wzór Epleya) i wariant pompek
 - [x] Wskaźnik siły względnej jako cecha klasyfikatorów
 - [x] Ciężary startowe w planie dla wszystkich ćwiczeń z obciążeniem (przeliczniki 1RM)
 - [x] Informacja w aplikacji, który algorytm ocenił poziom i dlaczego

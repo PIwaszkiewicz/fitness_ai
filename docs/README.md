@@ -203,7 +203,7 @@ więc po aktualizacji profilu kolejne zapytanie zwraca plan dostosowany do nowyc
    - 1RM pięciu ćwiczeń z kwestionariusza: podany przez użytkownika albo, dla pominiętych,
      oszacowany ze wskaźnika siły (ta sama siła względna: wskaźnik · norma · masa ciała),
    - 1RM ćwiczenia z atlasu = przelicznik · 1RM ćwiczenia odniesienia (`app/data/load_ratios.py`,
-     np. przysiad przedni 0,8 · przysiad, wyciskanie hantli 0,37 · wyciskanie leżąc na każdy hantel),
+     np. przysiad przedni 0,8 · przysiad, wyciskanie hantli 0,41 · wyciskanie leżąc na każdy hantel),
    - ciężar = 1RM / (1 + (górna granica powtórzeń + 2) / 30), czyli odwrotny wzór Epleya
      z 2 powtórzeniami w zapasie, zaokrąglony w dół do kroku sprzętu (sztanga 2,5 kg, hantle 2 kg,
      kettlebell 4 kg, maszyna 5 kg).

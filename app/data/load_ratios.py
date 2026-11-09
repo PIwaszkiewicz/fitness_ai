@@ -3,10 +3,11 @@
 Dla każdego ćwiczenia z obciążeniem zapisano ćwiczenie odniesienia (lift) i przelicznik:
 szacowany 1RM ćwiczenia = przelicznik · 1RM ćwiczenia odniesienia. Przy hantlach i kettlebell
 przelicznik dotyczy jednego przyrządu, a `implements` mówi, ile przyrządów się trzyma.
-Przykład: wyciskanie hantli leżąc ≈ 0,37 · 1RM wyciskania sztangi na każdy z 2 hantli.
+Przykład: wyciskanie hantli leżąc ≈ 0,41 · 1RM wyciskania sztangi na każdy z 2 hantli.
 
-Przeliczniki są przybliżeniem opartym na typowych proporcjach obciążeń między ćwiczeniami
-(np. przysiad przedni ≈ 80% przysiadu klasycznego) i wymagają uzasadnienia (docs/ZRODLA.md).
+Przeliczniki odmian wyciskania leżąc pochodzą z badań (Saeterbakken i in. 2011 i 2017),
+pozostałe są przybliżeniem opartym na typowych proporcjach obciążeń (np. przysiad przedni
+≈ 80% przysiadu klasycznego); źródła i założenia: docs/ZRODLA.md, B21.
 Dlatego plan podaje ciężar jako wskazówkę, którą użytkownik sprawdza w pierwszej serii.
 
 None oznacza ćwiczenie na przyrządzie, w którym obciążeniem jest masa ciała (np. pompki na
@@ -54,13 +55,16 @@ LOAD_RATIOS: dict[str, LoadRatio | None] = {
     "Rwanie kettlebell": LoadRatio(DL, 0.15),
     "Wyprosty tułowia na ławce rzymskiej": None,
     "Wyprosty tułowia na maszynie": LoadRatio(DL, 0.3),
-    # Wyciskanie poziome: odniesieniem jest wyciskanie sztangi leżąc
+    # Wyciskanie poziome: odniesieniem jest wyciskanie sztangi leżąc.
+    # Skos ±25° i wąski chwyt: 6RM w Saeterbakken i in. 2017 (skos −21,5%, w dół −2,5%,
+    # wąski chwyt −11,1%). Hantle: 1RM o 17% niższy niż ze sztangą, czyli 0,83 na parę
+    # (Saeterbakken i in. 2011), a na ławce skośnej dodatkowo · 0,82.
     "Wyciskanie sztangi na ławce płaskiej": LoadRatio(BP, 1.0),
-    "Wyciskanie sztangi na ławce skośnej głową do góry": LoadRatio(BP, 0.8),
-    "Wyciskanie sztangi na ławce skośnej głową w dół": LoadRatio(BP, 1.0),
-    "Wyciskanie sztangi wąskim chwytem leżąc": LoadRatio(BP, 0.85),
-    "Wyciskanie hantli leżąc na ławce płaskiej": LoadRatio(BP, 0.37, implements=2),
-    "Wyciskanie hantli na ławce skośnej": LoadRatio(BP, 0.32, implements=2),
+    "Wyciskanie sztangi na ławce skośnej głową do góry": LoadRatio(BP, 0.82),
+    "Wyciskanie sztangi na ławce skośnej głową w dół": LoadRatio(BP, 0.98),
+    "Wyciskanie sztangi wąskim chwytem leżąc": LoadRatio(BP, 0.9),
+    "Wyciskanie hantli leżąc na ławce płaskiej": LoadRatio(BP, 0.41, implements=2),
+    "Wyciskanie hantli na ławce skośnej": LoadRatio(BP, 0.34, implements=2),
     "Naprzemienne wyciskanie hantli leżąc z łokciami przy tułowiu": LoadRatio(BP, 0.3, implements=2),
     # Wiosłowanie: odniesieniem jest wyciskanie leżąc (wiosłowanie ≈ 75% wyciskania)
     "Wiosłowanie sztangą w opadzie": LoadRatio(BP, 0.75),

@@ -29,3 +29,13 @@ Każdy krok realizowany jest na osobnej gałęzi i scalany do `main` przez pull 
 - [x] Dobór hiperparametrów modeli ML walidacją krzyżową
 - [x] Test istotności statystycznej różnic między klasyfikatorami
 - [x] Pomiar czasu odpowiedzi API
+- [x] Eksperyment 5: wskaźnik siły z pytań o ciężary u osób trenujących
+
+## Rozszerzenia aplikacji
+
+- [x] Dobór klasyfikatora do liczby pustych odpowiedzi (średnia z 5 powtórzeń oceny)
+- [x] Pytania o ciężary w 5 podstawowych ćwiczeniach siłowych (seria zamiast 1RM, wzór Epleya) i wariant pompek
+- [x] Wskaźnik siły względnej jako cecha klasyfikatorów
+- [x] Ciężary startowe w planie dla wszystkich ćwiczeń z obciążeniem (przeliczniki 1RM)
+- [x] Informacja w aplikacji, który algorytm ocenił poziom i dlaczego
+- [x] Prosta migracja bazy (nowe kolumny) i aktualizacja atlasu przy starcie serwera

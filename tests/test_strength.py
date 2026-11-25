@@ -66,3 +66,12 @@ def test_brakujace_1rm_szacowane_ze_wskaznika_sily():
     assert maxes["squat"] == 100
     assert maxes["bench_press"] == pytest.approx(80)
     assert estimate_all_one_rep_maxes(profile()) == {}
+
+
+def test_ciezar_rowny_wielokrotnosci_kroku_nie_jest_zanizany():
+    # 132 / (1 + 14/30) to dokładnie 90 kg, a w arytmetyce zmiennoprzecinkowej 89,99999999999999,
+    # co bez zaokrąglenia dawało 87,5 kg (przysiad 110 kg × 6, seria 12 powtórzeń).
+    assert starting_load(132, 12) == "90 kg"
+    assert starting_load(66, 12) == "45 kg"  # wyciskanie nad głowę 55 kg × 6
+    # To samo przy podciąganiu: 83,6 / (1 + 10/30) − 60,2 to dokładnie 2,5 kg obciążenia.
+    assert starting_load(83.6, 8, body_weight=60.2) == "+2,5 kg"

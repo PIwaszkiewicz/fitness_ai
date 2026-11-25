@@ -138,9 +138,11 @@ def starting_load(
     Gdy wychodzi wyraźnie mniej niż masa ciała, użytkownik nie wykona tylu powtórzeń bez pomocy,
     więc zalecana jest asysta gumy.
     """
-    load = one_rep_max / (1 + (reps + REPS_IN_RESERVE) / 30)
+    # Zaokrąglenie do 6 miejsc usuwa błąd arytmetyki zmiennoprzecinkowej: np. 132 / (1 + 14/30)
+    # daje 89,99999999999999 zamiast 90, a zaokrąglenie w dół do kroku obniżyłoby ciężar o krok.
+    load = round(one_rep_max / (1 + (reps + REPS_IN_RESERVE) / 30), 6)
     if body_weight is not None:
-        load -= body_weight
+        load = round(load - body_weight, 6)
         if load <= -step:
             return "masa ciała, z asystą gumy"
         if load < step:

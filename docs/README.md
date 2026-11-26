@@ -47,8 +47,8 @@ python -m app.ml.train
 # 5. Uruchomienie serwera (aplikacja: http://127.0.0.1:8000, dokumentacja API: /docs)
 uvicorn app.main:app --reload
 
-# 6. Testy i sprawdzenie jakości kodu
-pytest
+# 6. Testy (z pomiarem pokrycia kodu) i sprawdzenie jakości kodu
+pytest --cov=app --cov=experiments --cov-report=term
 ruff check .
 
 # 7. Eksperymenty badawcze (wyniki w docs/experiments/) i ich przeglądanie w MLflow

@@ -86,7 +86,7 @@ Wyniki (`docs/experiments/tuning.csv`, pięć najlepszych ustawień każdego mod
    Przejściowo stosowano sieć (32) wybraną regułą jednego odchylenia; zrezygnowano z tego, bo
    prostota sieci nie daje korzyści, a mniejsza sieć wypadała gorzej, zwłaszcza przy brakach danych.
 2. **Drzewo decyzyjne:** najlepsze jest drzewo o głębokości 10 (0,815), ale drzewo o głębokości 6
-   mieści się w granicy jednego odchylenia (próg 0,804), a ma do 16 razy mniej liści, więc jego
+   mieści się w granicy jednego odchylenia (próg 0,804), a ma 52 liście wobec 169 przy głębokości 10, więc jego
    reguły da się przeczytać. Pozostaje głębokość 6 i min. 5 próbek w liściu.
 3. Dobór parametrów potwierdza przede wszystkim, że wyniki porównania nie wynikają z przypadkowo
    złych ustawień modeli: różnice między dobrymi ustawieniami są mniejsze niż różnice między metodami.

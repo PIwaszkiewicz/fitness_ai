@@ -34,7 +34,8 @@ jobs:
 
       # Testy automatyczne
       - name: Pytest
-        run: pytest
+        # Testy z pomiarem pokrycia kodu (raport w logu zadania).
+        run: pytest --cov=app --cov=experiments --cov-report=term
 
       # Sprawdzenie składni JavaScriptu frontendu (Node.js jest dostępny w maszynie CI)
       - name: Składnia JavaScript

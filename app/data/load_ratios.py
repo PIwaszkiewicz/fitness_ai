@@ -58,13 +58,13 @@ LOAD_RATIOS: dict[str, LoadRatio | None] = {
     # Wyciskanie poziome: odniesieniem jest wyciskanie sztangi leżąc.
     # Skos ±25° i wąski chwyt: 6RM w Saeterbakken i in. 2017 (skos −21,5%, w dół −2,5%,
     # wąski chwyt −11,1%). Hantle: 1RM o 17% niższy niż ze sztangą, czyli 0,83 na parę
-    # (Saeterbakken i in. 2011), a na ławce skośnej dodatkowo · 0,82.
+    # (Saeterbakken i in. 2011), a na ławce skośnej dodatkowo · 0,78.
     "Wyciskanie sztangi na ławce płaskiej": LoadRatio(BP, 1.0),
-    "Wyciskanie sztangi na ławce skośnej głową do góry": LoadRatio(BP, 0.82),
+    "Wyciskanie sztangi na ławce skośnej głową do góry": LoadRatio(BP, 0.78),
     "Wyciskanie sztangi na ławce skośnej głową w dół": LoadRatio(BP, 0.98),
     "Wyciskanie sztangi wąskim chwytem leżąc": LoadRatio(BP, 0.9),
     "Wyciskanie hantli leżąc na ławce płaskiej": LoadRatio(BP, 0.41, implements=2),
-    "Wyciskanie hantli na ławce skośnej": LoadRatio(BP, 0.34, implements=2),
+    "Wyciskanie hantli na ławce skośnej": LoadRatio(BP, 0.32, implements=2),
     "Naprzemienne wyciskanie hantli leżąc z łokciami przy tułowiu": LoadRatio(BP, 0.3, implements=2),
     # Wiosłowanie: odniesieniem jest wyciskanie leżąc (wiosłowanie ≈ 75% wyciskania)
     "Wiosłowanie sztangą w opadzie": LoadRatio(BP, 0.75),

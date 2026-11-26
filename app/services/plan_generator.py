@@ -23,6 +23,7 @@ from app.models.enums import (
     Difficulty,
     Equipment,
     FitnessLevel,
+    MovementPattern,
     MuscleGroup,
     TrainingGoal,
 )
@@ -166,8 +167,25 @@ def day_templates(days_per_week: int) -> list[tuple[str, list[MuscleGroup]]]:
     return [UPPER_DAY if day % 2 == 0 else LOWER_DAY for day in range(days_per_week)]
 
 
+def movement_variant(exercise: ExerciseRead) -> tuple:
+    """Wariant ruchu: w jednym treningu każdy wariant występuje najwyżej raz.
+
+    Ćwiczenia o tym samym wzorcu ruchu (np. martwy ciąg klasyczny i sumo, dwa rodzaje
+    podciągania) obciążają te same mięśnie i stawy, więc dwa takie ćwiczenia w jednej sesji
+    są powtórzeniem. Ćwiczenia izolowane różnią się pracującą grupą mięśniową, więc dla nich
+    wariantem jest para (wzorzec, grupa mięśniowa).
+    """
+    if exercise.movement_pattern == MovementPattern.ISOLATION:
+        return (exercise.movement_pattern, exercise.muscle_group)
+    return (exercise.movement_pattern,)
+
+
 def build_days(pool: list[ExerciseRead], days_per_week: int, count: int) -> list[list[ExerciseRead]]:
-    """Rozdziela ćwiczenia na dni według szablonów, rotując ćwiczenia w obrębie grup."""
+    """Rozdziela ćwiczenia na dni według szablonów, rotując ćwiczenia w obrębie grup.
+
+    W jednym dniu nie powtarza się wariant ruchu (movement_variant). Gdy dopuszczonych
+    ćwiczeń o różnych wariantach jest mniej niż count, dzień ma mniej ćwiczeń.
+    """
     by_group: dict[str, list[ExerciseRead]] = {}
     for exercise in pool:
         by_group.setdefault(exercise.muscle_group, []).append(exercise)
@@ -177,16 +195,24 @@ def build_days(pool: list[ExerciseRead], days_per_week: int, count: int) -> list
     days = []
     for _, groups in day_templates(days_per_week):
         chosen: list[ExerciseRead] = []
+        variants: set[tuple] = set()
         for group in groups:
-            candidates = [e for e in by_group.get(group, []) if e not in chosen]
+            candidates = [
+                e for e in by_group.get(group, [])
+                if e not in chosen and movement_variant(e) not in variants
+            ]
             if len(chosen) == count or not candidates:
                 continue
-            chosen.append(candidates[times_used[group] % len(candidates)])
+            exercise = candidates[times_used[group] % len(candidates)]
+            chosen.append(exercise)
+            variants.add(movement_variant(exercise))
             times_used[group] += 1
-        # Gdy dla części grup zabrakło ćwiczeń, uzupełniamy dowolnymi dopuszczonymi.
+        # Gdy dla części grup zabrakło ćwiczeń, uzupełniamy innymi dopuszczonymi
+        # o wariancie ruchu, którego jeszcze nie ma w tym dniu.
         for exercise in pool:
-            if len(chosen) < count and exercise not in chosen:
+            if len(chosen) < count and exercise not in chosen and movement_variant(exercise) not in variants:
                 chosen.append(exercise)
+                variants.add(movement_variant(exercise))
         days.append(chosen)
     return days
 

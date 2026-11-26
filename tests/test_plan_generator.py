@@ -13,6 +13,7 @@ from app.services.plan_generator import (
     exercises_per_session,
     generate_plan,
     is_safe,
+    movement_variant,
     select_exercises,
 )
 from app.services.strength import ATLAS_LIFTS, LIFTS
@@ -212,3 +213,26 @@ def test_cwiczenia_z_ciezarem_sa_w_atlasie():
     names = {exercise.name for exercise in ATLAS}
     assert set(ATLAS_LIFTS) <= names
     assert set(ATLAS_LIFTS.values()) == {lift.name for lift in LIFTS}
+
+
+@pytest.mark.parametrize("days", [3, 4])
+def test_jeden_wariant_ruchu_w_treningu(days):
+    # Osoba zaawansowana z pełnym sprzętem: w atlasie jest wiele odmian tego samego ruchu.
+    plan = plan_for(FitnessLevel.ADVANCED, training_days_per_week=days, session_minutes=90,
+                    available_equipment=["barbell", "dumbbells", "machine", "pull_up_bar", "kettlebell"],
+                    **LIFTER)
+    by_name = {e.name: e for e in ATLAS}
+    for day in plan.days:
+        variants = [movement_variant(by_name[e.name]) for e in day.exercises]
+        assert len(variants) == len(set(variants)), [e.name for e in day.exercises]
+
+
+def test_bez_dwoch_martwych_ciagow_i_podciagan_w_jednej_sesji():
+    # Przypadek z rys. pracy: martwy ciąg klasyczny i sumo oraz dwa rodzaje podciągania w jednym dniu.
+    plan = plan_for(FitnessLevel.ADVANCED, training_goal="muscle_gain", training_days_per_week=4,
+                    session_minutes=60,
+                    available_equipment=["barbell", "dumbbells", "machine", "pull_up_bar"], **LIFTER)
+    for day in plan.days:
+        names = {e.name for e in day.exercises}
+        assert not {"Martwy ciąg klasyczny", "Martwy ciąg sumo"} <= names
+        assert len([n for n in names if n.startswith("Podciąganie")]) <= 1

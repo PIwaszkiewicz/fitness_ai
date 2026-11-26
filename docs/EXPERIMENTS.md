@@ -283,15 +283,15 @@ Wyniki: średnia z 5 ziaren (`docs/experiments/plan_quality.csv`).
 
 | Pominięte odpowiedzi | Klasyfikator     | Plan dla prawdziwego poziomu | Za trudny | Za łatwy | Ćwiczenie trudniejsze niż poziom | Podobieństwo ćwiczeń |
 |----------------------|------------------|------------------------------|-----------|----------|----------------------------------|----------------------|
-| 0%                   | System regułowy  | 0,813                        | 0,129     | 0,058    | 0,124                            | 0,883                |
-| 0%                   | Drzewo decyzyjne | 0,824                        | 0,085     | 0,091    | 0,080                            | 0,895                |
-| 0%                   | Sieć neuronowa   | 0,887                        | 0,057     | 0,056    | 0,054                            | 0,932                |
-| 60%                  | System regułowy  | 0,744                        | 0,120     | 0,136    | 0,113                            | 0,840                |
-| 60%                  | Drzewo decyzyjne | 0,710                        | 0,169     | 0,121    | 0,164                            | 0,819                |
-| 60%                  | Sieć neuronowa   | 0,817                        | 0,084     | 0,099    | 0,080                            | 0,889                |
-| 100%                 | System regułowy  | 0,696                        | 0,072     | 0,232    | 0,067                            | 0,804                |
-| 100%                 | Drzewo decyzyjne | 0,513                        | 0,316     | 0,172    | 0,309                            | 0,678                |
-| 100%                 | Sieć neuronowa   | 0,719                        | 0,127     | 0,154    | 0,121                            | 0,826                |
+| 0%                   | System regułowy  | 0,813                        | 0,129     | 0,058    | 0,124                            | 0,885                |
+| 0%                   | Drzewo decyzyjne | 0,824                        | 0,085     | 0,091    | 0,080                            | 0,897                |
+| 0%                   | Sieć neuronowa   | 0,887                        | 0,057     | 0,056    | 0,054                            | 0,933                |
+| 60%                  | System regułowy  | 0,744                        | 0,120     | 0,136    | 0,113                            | 0,843                |
+| 60%                  | Drzewo decyzyjne | 0,710                        | 0,169     | 0,121    | 0,163                            | 0,822                |
+| 60%                  | Sieć neuronowa   | 0,817                        | 0,084     | 0,099    | 0,080                            | 0,891                |
+| 100%                 | System regułowy  | 0,696                        | 0,072     | 0,232    | 0,066                            | 0,808                |
+| 100%                 | Drzewo decyzyjne | 0,513                        | 0,316     | 0,172    | 0,309                            | 0,684                |
+| 100%                 | Sieć neuronowa   | 0,719                        | 0,127     | 0,154    | 0,121                            | 0,829                |
 
 We wszystkich przebiegach liczba ćwiczeń przeciwwskazanych wyniosła **0**.
 
@@ -302,7 +302,7 @@ We wszystkich przebiegach liczba ćwiczeń przeciwwskazanych wyniosła **0**.
 1. **Bezpieczeństwo nie zależy od kompletności danych.** Ograniczenia zdrowotne są pytaniem
    obowiązkowym, a filtr przeciwwskazań działa niezależnie od klasyfikatora, więc żaden plan nie
    zawierał ćwiczenia przeciwwskazanego, nawet przy błędnie wyznaczonym poziomie.
-2. **Błędny poziom zmienia część planu.** Przy pełnych danych plany mają 88–93% wspólnych
+2. **Błędny poziom zmienia część planu.** Przy pełnych danych plany mają 89–93% wspólnych
    ćwiczeń z planem wzorcowym, a przy samych danych podstawowych 68–83%. Generator wybiera
    najpierw ćwiczenia o trudności najbliższej poziomowi, więc pomyłka o jeden poziom podmienia
    część ćwiczeń (i liczbę serii u początkujących). Wcześniejsza wersja generatora brała ćwiczenia

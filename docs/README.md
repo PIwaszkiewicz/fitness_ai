@@ -198,6 +198,10 @@ więc po aktualizacji profilu kolejne zapytanie zwraca plan dostosowany do nowyc
 4. Liczba ćwiczeń (3–8) wynika z długości treningu po odjęciu 10 minut rozgrzewki.
 5. Przy 1–3 dniach w tygodniu każdy trening obejmuje całe ciało, przy 4–7 dniach
    treningi góry i dołu ciała następują na zmianę. Ćwiczenia rotują między dniami.
+   W jednym treningu każdy wariant ruchu występuje najwyżej raz: nie ma w nim dwóch ćwiczeń
+   o tym samym wzorcu ruchu (np. martwy ciąg klasyczny i sumo, dwa rodzaje podciągania),
+   a ćwiczenia izolowane nie powtarzają grupy mięśniowej. Gdy dopuszczonych ćwiczeń o różnych
+   wariantach jest za mało, trening ma mniej ćwiczeń.
 6. **Ciężary startowe:** gdy użytkownik podał choć jedną serię z ciężarem, przy każdym
    ćwiczeniu z obciążeniem w planie (`load`) pojawia się ciężar:
    - 1RM pięciu ćwiczeń z kwestionariusza: podany przez użytkownika albo, dla pominiętych,
